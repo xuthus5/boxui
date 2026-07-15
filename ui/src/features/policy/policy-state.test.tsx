@@ -36,6 +36,30 @@ describe("policy alternate states", () => {
     await user.click(await screen.findByRole("button", { name: "安装默认 DNS" }))
     expect(await screen.findByText("download failed")).toBeInTheDocument()
   })
+
+  it("installs route rule sets before route defaults and refetches", async () => {
+    sessionStore.set({ token: "token", expiresAt: "2099-01-01T00:00:00Z" })
+    const requests: string[] = []
+    const fetchMock = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input)
+      if (init?.method === "POST") {
+        requests.push(url)
+        return Promise.resolve(new Response(JSON.stringify({ status: "ok", data: null, error: null, meta: {} })))
+      }
+      return Promise.resolve(new Response(JSON.stringify({ route: {} })))
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    const user = userEvent.setup()
+    renderApp(<App />, "/policy/route")
+    await user.click(await screen.findByRole("button", { name: "安装默认路由" }))
+
+    expect(await screen.findByText("默认配置已安装")).toBeInTheDocument()
+    expect(requests).toEqual([
+      "/api/config/rule-sets/defaults",
+      "/api/config/route/defaults",
+    ])
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === undefined)).toHaveLength(2)
+  })
 })
 
 describe("policy save and rollback states", () => {

@@ -4,46 +4,204 @@ import { toast } from "sonner"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useConfigQuery, useSaveConfigMutation } from "@/features/config/config-hooks"
 import { JsonEditor } from "@/features/config/json-editor"
-import { isValidJSON } from "@/features/config/json-utils"
+import { isJsonObject, type JsonObject } from "@/features/policy/policy-form-model"
 import type { APIEnvelope, JsonValue } from "@/lib/api/types"
+
+export interface PolicyVisualEditorProps {
+  object: JsonObject
+  revision: number
+  onChange: (object: JsonObject) => void
+  onFieldValidityChange: (path: string, valid: boolean) => void
+}
 
 interface PolicyPageProps {
   section: "route" | "dns"
   title: string
   installLabel: string
   install: () => Promise<APIEnvelope<JsonValue>>
+  renderVisual?: (props: PolicyVisualEditorProps) => React.ReactNode
 }
 
-function PolicyEditor({ initial, onSave }: { initial: JsonValue; onSave: (value: JsonValue) => void }) {
+interface PolicyEditorProps {
+  initialSection: JsonValue
+  title: string
+  installLabel: string
+  onSave: (object: JsonObject) => void
+  onInstall: () => void
+  renderVisual: (props: PolicyVisualEditorProps) => React.ReactNode
+}
+
+interface PolicyEditorTabsProps {
+  object: JsonObject | null
+  revision: number
+  value: string
+  onChange: (object: JsonObject) => void
+  onJSONChange: (value: string) => void
+  onFieldValidityChange: (path: string, valid: boolean) => void
+  renderVisual: (props: PolicyVisualEditorProps) => React.ReactNode
+}
+
+function parsePolicyObject(value: string): JsonObject | null {
+  try {
+    const parsed = JSON.parse(value) as JsonValue
+    return isJsonObject(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function EmptyVisualEditor() {
+  return null
+}
+
+function usePolicyEditorState(initialSection: JsonValue) {
+  const [value, setValue] = useState(() => JSON.stringify(initialSection, null, 2))
+  const [revision, setRevision] = useState(0)
+  const [invalidFields, setInvalidFields] = useState(() => new Set<string>())
+  const object = parsePolicyObject(value)
+  const updateObject = (next: JsonObject) => setValue(JSON.stringify(next, null, 2))
+  const updateJSON = (next: string) => {
+    setValue(next)
+    setRevision((current) => current + 1)
+  }
+  const updateFieldValidity = (path: string, valid: boolean) => {
+    setInvalidFields((current) => {
+      const next = new Set(current)
+      if (valid) next.delete(path)
+      else next.add(path)
+      return next
+    })
+  }
+  return { value, revision, invalidFields, object, updateObject, updateJSON, updateFieldValidity }
+}
+
+function PolicyEditorTabs({
+  object,
+  revision,
+  value,
+  onChange,
+  onJSONChange,
+  onFieldValidityChange,
+  renderVisual,
+}: PolicyEditorTabsProps) {
+  return (
+    <Tabs defaultValue="visual">
+      <TabsList>
+        <TabsTrigger value="visual">可视化配置</TabsTrigger>
+        <TabsTrigger value="json">高级 JSON</TabsTrigger>
+      </TabsList>
+      <TabsContent value="visual">
+        {object ? renderVisual({ object, revision, onChange, onFieldValidityChange }) : null}
+      </TabsContent>
+      <TabsContent value="json">
+        <FieldGroup>
+          <Field>
+            <FieldLabel className="sr-only">Policy JSON</FieldLabel>
+            <JsonEditor value={value} onChange={onJSONChange} ariaLabel="Policy JSON" />
+          </Field>
+        </FieldGroup>
+      </TabsContent>
+    </Tabs>
+  )
+}
+
+function PolicyEditor({
+  initialSection,
+  title,
+  installLabel,
+  onSave,
+  onInstall,
+  renderVisual,
+}: PolicyEditorProps) {
   const { t } = useTranslation()
-  const [value, setValue] = useState(() => JSON.stringify(initial, null, 2))
-  return <FieldGroup><Field><FieldLabel className="sr-only">Policy JSON</FieldLabel><JsonEditor value={value} onChange={setValue} ariaLabel="Policy JSON" /></Field><Field><Button disabled={!isValidJSON(value)} onClick={() => onSave(JSON.parse(value) as JsonValue)}>{t("policy.save")}</Button></Field></FieldGroup>
+  const editor = usePolicyEditorState(initialSection)
+  const savePolicy = () => {
+    if (editor.object) onSave(editor.object)
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle role="heading" aria-level={1}>{title}</CardTitle>
+        <CardDescription>{t("policy.description")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <PolicyEditorTabs
+          object={editor.object}
+          revision={editor.revision}
+          value={editor.value}
+          onChange={editor.updateObject}
+          onJSONChange={editor.updateJSON}
+          onFieldValidityChange={editor.updateFieldValidity}
+          renderVisual={renderVisual}
+        />
+      </CardContent>
+      <CardFooter className="justify-between gap-2">
+        <Button variant="outline" onClick={onInstall}>{installLabel}</Button>
+        <Button disabled={!editor.object || editor.invalidFields.size > 0} onClick={savePolicy}>
+          {t("policy.save")}
+        </Button>
+      </CardFooter>
+    </Card>
+  )
 }
 
-export function PolicyPage({ section, title, installLabel, install }: PolicyPageProps) {
+export function PolicyPage({
+  section,
+  title,
+  installLabel,
+  install,
+  renderVisual = EmptyVisualEditor,
+}: PolicyPageProps) {
   const { t } = useTranslation()
   const query = useConfigQuery()
   const save = useSaveConfigMutation()
   if (query.isLoading) return <Skeleton className="h-64 w-full" />
-  if (query.error) return <Alert variant="destructive"><AlertTitle>{t("common.loadFailed")}</AlertTitle><AlertDescription>{query.error.message}</AlertDescription></Alert>
-  const persist = (value: JsonValue) => save.mutate({ ...query.data!, [section]: value }, {
-    onSuccess: (response) => response.status === "rolled_back" ? toast.error(t("policy.rolledBack")) : toast.success(t("proxy.saved")),
+  if (query.error) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>{t("common.loadFailed")}</AlertTitle>
+        <AlertDescription>{query.error.message}</AlertDescription>
+      </Alert>
+    )
+  }
+  const persist = (object: JsonObject) => save.mutate({ ...query.data!, [section]: object }, {
+    onSuccess: (response) => response.status === "rolled_back"
+      ? toast.error(t("policy.rolledBack"))
+      : toast.success(t("proxy.saved")),
     onError: (error) => toast.error(error.message),
   })
-  const installDefaults = () => install().then((response) => {
-    if (response.status === "rolled_back") throw new Error(t("policy.rolledBack"))
-    return query.refetch()
-  }).then(() => toast.success(t("policy.installed"))).catch((error: Error) => toast.error(error.message))
+  const installDefaults = () => install()
+    .then((response) => {
+      if (response.status === "rolled_back") throw new Error(t("policy.rolledBack"))
+      return query.refetch()
+    })
+    .then(() => toast.success(t("policy.installed")))
+    .catch((error: Error) => toast.error(error.message))
+  const initialSection = query.data?.[section] ?? {}
+
   return (
-    <Card>
-      <CardHeader><CardTitle role="heading" aria-level={1}>{title}</CardTitle><CardDescription>{t("policy.description")}</CardDescription></CardHeader>
-      <CardContent><PolicyEditor key={JSON.stringify(query.data?.[section] ?? {})} initial={query.data?.[section] ?? {}} onSave={persist} /></CardContent>
-      <CardFooter><Button variant="outline" onClick={installDefaults}>{installLabel}</Button></CardFooter>
-    </Card>
+    <PolicyEditor
+      key={JSON.stringify(initialSection)}
+      initialSection={initialSection}
+      title={title}
+      installLabel={installLabel}
+      onSave={persist}
+      onInstall={installDefaults}
+      renderVisual={renderVisual}
+    />
   )
 }

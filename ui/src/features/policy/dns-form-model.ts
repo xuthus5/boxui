@@ -4,7 +4,16 @@ import {
   setPolicyPath,
   type JsonObject,
   type PolicyFieldSpec,
+  type PolicyFieldTransform,
 } from "@/features/policy/policy-form-model"
+import {
+  dnsActionCleanupFields,
+  dnsRuleCleanupFields,
+  dnsServerCleanupFields,
+  transitionCleanupFields,
+} from "@/features/policy/dns-form-cleanup"
+
+export { dnsServerFields } from "@/features/policy/dns-form-server-fields"
 
 const domainStrategies = ["prefer_ipv4", "prefer_ipv6", "ipv4_only", "ipv6_only"] as const
 
@@ -91,109 +100,73 @@ export const dnsActionFields: Record<string, readonly PolicyFieldSpec[]> = {
   ],
 }
 
-const domainResolverFields = [
-  { path: "domain_resolver.server", label: "domainResolverServer" },
-  { path: "domain_resolver.strategy", label: "domainResolverStrategy", kind: "select", options: domainStrategies },
-  { path: "domain_resolver.disable_cache", label: "domainResolverDisableCache", kind: "boolean" },
-  { path: "domain_resolver.rewrite_ttl", label: "domainResolverRewriteTTL", kind: "number" },
-  { path: "domain_resolver.client_subnet", label: "domainResolverClientSubnet" },
-] as const satisfies readonly PolicyFieldSpec[]
+const queryTypeNames = new Map([
+  "A AAAA AFSDB AMTRELAY ANY APL ATMA AVC AXFR CAA CDNSKEY CDS CERT CNAME CSYNC DHCID DLV DNAME DNSKEY DS",
+  "EID EUI48 EUI64 GID GPOS HINFO HIP HTTPS IPSECKEY ISDN IXFR KEY KX L32 L64 LOC LP MAILA MAILB MB MD MF MG",
+  "MINFO MR MX NAPTR NID NIMLOC NINFO NS NSEC NSEC3 NSEC3PARAM NULL NXNAME NXT None OPENPGPKEY OPT PTR PX",
+  "RESINFO RKEY RP RRSIG RT Reserved SIG SMIMEA SOA SPF SRV SSHFP SVCB TA TALINK TKEY TLSA TSIG TXT UID UINFO",
+  "UNSPEC URI X25 ZONEMD NSAP-PTR",
+].join(" ").split(" ").map((name) => [name.toUpperCase(), name]))
+const rcodeNames = new Set(
+  "NOERROR FORMERR SERVFAIL NXDOMAIN NOTIMP REFUSED YXDOMAIN YXRRSET NXRRSET NOTAUTH NOTZONE DSOTYPENI BADSIG BADKEY BADTIME BADMODE BADNAME BADALG BADTRUNC BADCOOKIE".split(" "),
+)
 
-const dialerFields = [
-  { path: "detour", label: "detour" }, { path: "bind_interface", label: "bindInterface" },
-  { path: "inet4_bind_address", label: "inet4BindAddress" }, { path: "inet6_bind_address", label: "inet6BindAddress" },
-  { path: "bind_address_no_port", label: "bindAddressNoPort", kind: "boolean" },
-  { path: "protect_path", label: "protectPath" }, { path: "routing_mark", label: "routingMark" },
-  { path: "reuse_addr", label: "reuseAddress", kind: "boolean" }, { path: "netns", label: "networkNamespace" },
-  { path: "connect_timeout", label: "connectTimeout" }, { path: "tcp_fast_open", label: "tcpFastOpen", kind: "boolean" },
-  { path: "tcp_multi_path", label: "tcpMultiPath", kind: "boolean" },
-  { path: "disable_tcp_keep_alive", label: "disableTCPKeepAlive", kind: "boolean" },
-  { path: "tcp_keep_alive", label: "tcpKeepAlive" }, { path: "tcp_keep_alive_interval", label: "tcpKeepAliveInterval" },
-  { path: "udp_fragment", label: "udpFragment", kind: "boolean" }, ...domainResolverFields,
-  { path: "network_strategy", label: "networkStrategy", kind: "select", options: ["default", "fallback", "hybrid"] },
-  { path: "network_type", label: "networkType", kind: "list" },
-  { path: "fallback_network_type", label: "fallbackNetworkType", kind: "list" },
-  { path: "fallback_delay", label: "fallbackDelay" },
-] as const satisfies readonly PolicyFieldSpec[]
-
-const remoteFields = [
-  { path: "server", label: "server" }, { path: "server_port", label: "serverPort", kind: "number" }, ...dialerFields,
-] as const satisfies readonly PolicyFieldSpec[]
-const tlsFields = [
-  { path: "tls.enabled", label: "tlsEnabled", kind: "boolean" }, { path: "tls.disable_sni", label: "tlsDisableSNI", kind: "boolean" },
-  { path: "tls.server_name", label: "tlsServerName" }, { path: "tls.insecure", label: "tlsInsecure", kind: "boolean" },
-  { path: "tls.alpn", label: "tlsALPN", kind: "list" }, { path: "tls.certificate", label: "tlsCertificate", kind: "list" },
-  { path: "tls.certificate_path", label: "tlsCertificatePath" },
-] as const satisfies readonly PolicyFieldSpec[]
-const legacyServerFields = [
-  { path: "address", label: "address" }, { path: "address_resolver", label: "addressResolver" },
-  { path: "address_strategy", label: "addressStrategy", kind: "select", options: domainStrategies },
-  { path: "address_fallback_delay", label: "addressFallbackDelay" }, { path: "strategy", label: "strategy", kind: "select", options: domainStrategies },
-  { path: "detour", label: "detour" }, { path: "client_subnet", label: "clientSubnet" },
-] as const satisfies readonly PolicyFieldSpec[]
-
-const serverTypeFields: Record<string, readonly PolicyFieldSpec[]> = {
-  legacy: legacyServerFields,
-  local: [...dialerFields, { path: "prefer_go", label: "preferGo", kind: "boolean" }],
-  hosts: [{ path: "path", label: "path", kind: "list" }, { path: "predefined", label: "predefined", kind: "json-object" }],
-  udp: remoteFields, tcp: remoteFields,
-  tls: [...remoteFields, ...tlsFields], quic: [...remoteFields, ...tlsFields],
-  https: [...remoteFields, ...tlsFields, { path: "path", label: "path" }, { path: "method", label: "method" }, { path: "headers", label: "headers", kind: "json-object" }],
-  h3: [...remoteFields, ...tlsFields, { path: "path", label: "path" }, { path: "method", label: "method" }, { path: "headers", label: "headers", kind: "json-object" }],
-  dhcp: [...dialerFields, { path: "prefer_go", label: "preferGo", kind: "boolean" }, { path: "interface", label: "interface" }],
-  fakeip: [{ path: "inet4_range", label: "fakeIPIPv4Range" }, { path: "inet6_range", label: "fakeIPIPv6Range" }],
-}
-const logicalRuleFields: readonly PolicyFieldSpec[] = [
-  { path: "mode", label: "logicalMode", kind: "select", options: ["and", "or"] },
-  { path: "rules", label: "logicalRules", kind: "json-array" },
-  dnsRuleMatchFields.at(-1)!,
-]
-const ruleTypeFields: Record<string, readonly PolicyFieldSpec[]> = {
-  default: dnsRuleMatchFields.filter((field) => field.path !== "type"), logical: logicalRuleFields,
+function decimalInteger(raw: string, maximum: number): number | null {
+  if (!/^\d+$/.test(raw)) return null
+  const value = Number(raw)
+  return Number.isSafeInteger(value) && value <= maximum ? value : null
 }
 
-function uniqueFields(groups: readonly (readonly PolicyFieldSpec[])[]): PolicyFieldSpec[] {
-  const fields = new Map<string, PolicyFieldSpec>()
-  for (const group of groups) for (const field of group) if (!fields.has(field.path)) fields.set(field.path, field)
-  return [...fields.values()]
+function queryTypeToken(raw: string): string | number | null {
+  const numeric = decimalInteger(raw, 0xFFFF)
+  if (numeric !== null) return numeric
+  return queryTypeNames.get(raw.toUpperCase()) ?? null
 }
 
-function matchesField(value: unknown, field: PolicyFieldSpec): boolean {
-  if (value === undefined) return true
-  if (field.path === "rcode" || field.path === "routing_mark") {
-    return typeof value === "string" || typeof value === "number" && Number.isFinite(value)
+function transformQueryType(object: JsonObject, raw: string): JsonObject | null {
+  const tokens = raw.split(/[\n,]/).map((token) => token.trim()).filter(Boolean)
+  if (tokens.length === 0) return setPolicyPath(object, "query_type", undefined)
+  const values = tokens.map(queryTypeToken)
+  if (values.some((value) => value === null)) return null
+  const current = getPolicyPath(object, "query_type")
+  const value = Array.isArray(current) || values.length > 1 || current === undefined ? values : values[0]
+  return setPolicyPath(object, "query_type", value as string | number | (string | number)[])
+}
+
+function transformRCode(object: JsonObject, raw: string): JsonObject | null {
+  const token = raw.trim()
+  if (!token) return setPolicyPath(object, "rcode", undefined)
+  const numeric = decimalInteger(token, 0xFFF)
+  if (numeric !== null) return setPolicyPath(object, "rcode", numeric)
+  const name = token.toUpperCase()
+  return rcodeNames.has(name) ? setPolicyPath(object, "rcode", name) : null
+}
+
+function prefixedMark(raw: string): boolean {
+  const normalized = /^0[0-7]+$/.test(raw) ? `0o${raw.slice(1)}` : raw
+  if (!/^0(?:[xX][\da-fA-F]+|[bB][01]+|[oO][0-7]+)$/.test(normalized)) return false
+  try {
+    return BigInt(normalized) <= 0xFFFFFFFFn
+  } catch (error) {
+    void error
+    return false
   }
-  if (field.path === "query_type") {
-    const valid = (item: unknown) => typeof item === "string" || typeof item === "number" && Number.isFinite(item)
-    return valid(value) || Array.isArray(value) && value.every(valid)
-  }
-  if (field.kind === "boolean") return typeof value === "boolean"
-  if (field.kind === "number") return typeof value === "number" && Number.isFinite(value)
-  if (field.kind === "list") return typeof value === "string" || Array.isArray(value) && value.every((item) => typeof item === "string")
-  if (field.kind === "number-list") return typeof value === "number" && Number.isFinite(value)
-    || Array.isArray(value) && value.every((item) => typeof item === "number" && Number.isFinite(item))
-  if (field.kind === "json-object") return value !== null && typeof value === "object" && !Array.isArray(value)
-  if (field.kind === "json-array") return Array.isArray(value)
-  return typeof value === "string"
 }
 
-function transitionFields(object: JsonObject, known: readonly PolicyFieldSpec[], compatible: readonly PolicyFieldSpec[]): JsonObject {
-  const targets = new Map(compatible.map((field) => [field.path, field]))
-  return known.reduce((next, field) => {
-    const target = targets.get(field.path)
-    return target && matchesField(getPolicyPath(next, field.path), target) ? next : setPolicyPath(next, field.path, undefined)
-  }, object)
+function transformRoutingMark(object: JsonObject, raw: string): JsonObject | null {
+  const token = raw.trim()
+  if (!token) return setPolicyPath(object, "routing_mark", undefined)
+  if (prefixedMark(token)) return setPolicyPath(object, "routing_mark", token)
+  const numeric = decimalInteger(token, 0xFFFFFFFF)
+  return numeric === null ? null : setPolicyPath(object, "routing_mark", numeric)
 }
 
-function compatibleFields(fields: Record<string, readonly PolicyFieldSpec[]>, current: string, target: string): PolicyFieldSpec[] {
-  if (!Object.hasOwn(fields, current)) return [...(fields[target] ?? [])]
-  const targetFields = fields[target] ?? []
-  return targetFields.filter((field) => fields[current].some((source) => source.path === field.path && source.kind === field.kind))
+export const transformDNSField: PolicyFieldTransform = (object, field, raw) => {
+  if (field.path === "query_type") return transformQueryType(object, raw)
+  if (field.path === "rcode") return transformRCode(object, raw)
+  if (field.path === "routing_mark") return transformRoutingMark(object, raw)
+  return undefined
 }
-
-const knownServerFields = uniqueFields(Object.values(serverTypeFields))
-const knownRuleFields = uniqueFields(Object.values(ruleTypeFields))
-const knownActionFields = uniqueFields(Object.values(dnsActionFields))
 
 export function dnsServers(object: JsonObject): JsonObject[] {
   return Array.isArray(object.servers) ? object.servers.filter(isJsonObject) : []
@@ -218,17 +191,16 @@ export function inferDNSServerType(server: JsonObject): string {
 export function changeDNSServerType(server: JsonObject, type: string): JsonObject {
   const current = inferDNSServerType(server)
   if (current === type) return server
-  const bothKnown = Object.hasOwn(serverTypeFields, current) && Object.hasOwn(serverTypeFields, type)
+  const bothKnown = Object.hasOwn(dnsServerCleanupFields, current) && Object.hasOwn(dnsServerCleanupFields, type)
   const separated = bothKnown && (current === "legacy") !== (type === "legacy")
-  const compatible = separated ? [] : compatibleFields(serverTypeFields, current, type)
-  const next = transitionFields(server, knownServerFields, compatible)
+  const next = transitionCleanupFields(server, dnsServerCleanupFields, { current, target: type, share: !separated })
   return setPolicyPath(next, "type", type === "legacy" ? undefined : type)
 }
 
 export function changeDNSRuleType(rule: JsonObject, type: string): JsonObject {
   const current = String(rule.type ?? "default")
   if (current === type) return rule
-  const next = transitionFields(rule, knownRuleFields, compatibleFields(ruleTypeFields, current, type))
+  const next = transitionCleanupFields(rule, dnsRuleCleanupFields, { current, target: type })
   return setPolicyPath(next, "type", type === "default" ? undefined : type)
 }
 
@@ -236,7 +208,7 @@ export function changeDNSAction(rule: JsonObject, action: string): JsonObject {
   const explicit = String(rule.action ?? "")
   if (explicit === action && explicit) return rule
   const current = explicit || "route"
-  const next = transitionFields(rule, knownActionFields, compatibleFields(dnsActionFields, current, action))
+  const next = transitionCleanupFields(rule, dnsActionCleanupFields, { current, target: action })
   return setPolicyPath(next, "action", action || undefined)
 }
 
@@ -246,11 +218,14 @@ function stringValue(value: unknown): string {
 
 export function summarizeDNSServer(server: JsonObject): { type: string; detail: string } {
   const type = inferDNSServerType(server)
-  if (type === "legacy") return { type, detail: stringValue(server.address) || stringValue(server.tag) }
   const host = stringValue(server.server)
   const port = typeof server.server_port === "number" && Number.isFinite(server.server_port) ? `:${server.server_port}` : ""
-  const detail = host ? `${host}${port}` : stringValue(server.interface) || stringValue(server.tag)
-  return { type, detail }
+  const primary = type === "legacy" ? stringValue(server.address) : host ? `${host}${port}` : stringValue(server.interface)
+  const details = [primary]
+  if (stringValue(server.tag)) details.push(`tag ${server.tag}`)
+  if (stringValue(server.detour)) details.push(`detour ${server.detour}`)
+  if (stringValue(server.strategy)) details.push(`strategy ${server.strategy}`)
+  return { type, detail: details.filter(Boolean).join(" · ") }
 }
 
 const summaryPaths = [
@@ -269,7 +244,9 @@ function summarizeValue(path: string, value: unknown): string[] {
 }
 
 export function summarizeDNSRule(rule: JsonObject): { matches: string[]; action: string } {
-  const matches = summaryPaths.flatMap((path) => summarizeValue(path, rule[path]))
+  const logical = rule.type === "logical" && typeof rule.mode === "string" ? [`mode:${rule.mode}`] : []
+  const matches = [...logical, ...summaryPaths.flatMap((path) => summarizeValue(path, rule[path]))]
   const action = String(rule.action ?? "route")
-  return { matches, action: action === "route" && typeof rule.server === "string" ? rule.server : action }
+  const target = action === "route" && typeof rule.server === "string" && rule.server ? ` · ${rule.server}` : ""
+  return { matches, action: `${action}${target}` }
 }

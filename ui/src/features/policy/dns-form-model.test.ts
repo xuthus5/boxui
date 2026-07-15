@@ -233,17 +233,17 @@ describe("DNS arrays and summaries", () => {
 
   it("summarizes legacy and modern servers", () => {
     expect(summarizeDNSServer({ tag: "google", address: "https://dns.google/dns-query" }))
-      .toEqual({ type: "legacy", detail: "https://dns.google/dns-query" })
+      .toEqual({ type: "legacy", detail: "https://dns.google/dns-query · tag google" })
     expect(summarizeDNSServer({ type: "https", tag: "google", server: "dns.google", server_port: 443 }))
-      .toEqual({ type: "https", detail: "dns.google:443" })
+      .toEqual({ type: "https", detail: "dns.google:443 · tag google" })
     expect(summarizeDNSServer({ type: "dhcp", tag: "lan", interface: "eth0" }))
-      .toEqual({ type: "dhcp", detail: "eth0" })
-    expect(summarizeDNSServer({ type: "local", tag: "local" })).toEqual({ type: "local", detail: "local" })
+      .toEqual({ type: "dhcp", detail: "eth0 · tag lan" })
+    expect(summarizeDNSServer({ type: "local", tag: "local" })).toEqual({ type: "local", detail: "tag local" })
   })
 
   it("summarizes match values and DNS actions", () => {
     expect(summarizeDNSRule({ domain_suffix: ["example.com"], network: "udp", server: "dns" }))
-      .toEqual({ matches: ["example.com", "udp"], action: "dns" })
+      .toEqual({ matches: ["example.com", "udp"], action: "route · dns" })
     expect(summarizeDNSRule({ source_ip_is_private: true, query_type: ["A", 28], action: "reject" }))
       .toEqual({ matches: ["source_ip_is_private", "A", "28"], action: "reject" })
     expect(summarizeDNSRule({ port: [53, null, false], action: "route-options" }).matches).toEqual(["53"])

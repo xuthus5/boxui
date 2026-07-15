@@ -72,4 +72,36 @@ describe("DNS cleanup-only field transitions", () => {
       payload: "keep",
     })
   })
+
+  it("removes scalar domain resolvers when a modern server changes to legacy", () => {
+    expect(changeDNSServerType({
+      type: "udp", server: "1.1.1.1", domain_resolver: "dns", custom: "keep",
+    }, "legacy")).toEqual({ custom: "keep" })
+  })
+
+  it("removes scalar domain resolvers when a modern server changes to an unknown type", () => {
+    expect(changeDNSServerType({
+      type: "udp", server: "1.1.1.1", domain_resolver: "dns", custom: "keep",
+    }, "custom")).toEqual({ type: "custom", custom: "keep" })
+  })
+
+  it("retains scalar domain resolvers when an unknown source changes to a modern server", () => {
+    expect(changeDNSServerType({
+      type: "custom", domain_resolver: "dns", payload: "keep",
+    }, "udp")).toEqual({ type: "udp", domain_resolver: "dns", payload: "keep" })
+  })
+
+  it("applies leaf cleanup to object resolvers while preserving unknown siblings", () => {
+    expect(changeDNSServerType({
+      type: "udp",
+      domain_resolver: { server: "dns", strategy: "prefer_ipv4", custom: "keep" },
+    }, "hosts")).toEqual({ type: "hosts", domain_resolver: { custom: "keep" } })
+    expect(changeDNSServerType({
+      type: "custom",
+      domain_resolver: { server: "dns", strategy: "prefer_ipv6", custom: "keep" },
+    }, "tls")).toEqual({
+      type: "tls",
+      domain_resolver: { server: "dns", strategy: "prefer_ipv6", custom: "keep" },
+    })
+  })
 })

@@ -1,5 +1,6 @@
 import {
   getPolicyPath,
+  isJsonObject,
   setPolicyPath,
   type JsonObject,
 } from "@/features/policy/policy-form-model"
@@ -133,16 +134,33 @@ function compatibleFields(registry: CleanupRegistry, change: CleanupTransition):
   return target.filter((field) => registry[change.current].some((source) => source[0] === field[0] && source[1] === field[1]))
 }
 
+function supportsDomainResolver(registry: CleanupRegistry, type: string): boolean {
+  return (registry[type] ?? []).some((field) => field[0].startsWith("domain_resolver."))
+}
+
+function prepareDomainResolverRoot(
+  object: JsonObject,
+  registry: CleanupRegistry,
+  change: CleanupTransition,
+): JsonObject {
+  if (!Object.keys(registry).some((type) => supportsDomainResolver(registry, type))) return object
+  const value = object.domain_resolver
+  if (value === undefined || isJsonObject(value)) return object
+  if (typeof value === "string" && supportsDomainResolver(registry, change.target)) return object
+  return setPolicyPath(object, "domain_resolver", undefined)
+}
+
 export function transitionCleanupFields(
   object: JsonObject,
   registry: CleanupRegistry,
   change: CleanupTransition,
 ): JsonObject {
   const compatible = new Map(compatibleFields(registry, change).map((field) => [field[0], field]))
+  const prepared = prepareDomainResolverRoot(object, registry, change)
   return uniqueFields(registry).reduce((next, field) => {
     const value = getPolicyPath(next, field[0])
     if (value === undefined) return next
     const target = compatible.get(field[0])
     return target && matchesField(value, target) ? next : setPolicyPath(next, field[0], undefined)
-  }, object)
+  }, prepared)
 }

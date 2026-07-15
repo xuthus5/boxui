@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react"
+import { fireEvent, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, it, vi } from "vitest"
 
@@ -19,10 +19,11 @@ describe("proxy and policy interactions", () => {
     const user = authenticate(); installMockAPI(); renderApp(<App />, "/proxy/inbounds")
     await screen.findByText("mixed-in")
     await user.click(screen.getByRole("button", { name: "新增入站" }))
-    await user.type(screen.getByLabelText("Tag"), "new-in")
-    await user.type(screen.getByLabelText("类型"), "mixed")
-    await user.type(screen.getByLabelText("地址"), "::")
-    await user.type(screen.getByLabelText("端口"), "1081")
+    fireEvent.change(screen.getByLabelText("Tag"), { target: { value: "new-in" } })
+    await user.click(screen.getByRole("combobox", { name: "类型" }))
+    await user.click(await screen.findByRole("option", { name: "mixed" }))
+    fireEvent.change(screen.getByLabelText("监听地址"), { target: { value: "::" } })
+    fireEvent.change(screen.getByLabelText("监听端口"), { target: { value: "1081" } })
     await user.click(screen.getByRole("button", { name: "保存" }))
     await user.click(screen.getByRole("button", { name: "编辑" }))
     await user.click(screen.getByRole("button", { name: "取消" }))

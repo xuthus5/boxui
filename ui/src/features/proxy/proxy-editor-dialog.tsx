@@ -7,6 +7,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { JsonEditor } from "@/features/config/json-editor"
 import { isValidJSON } from "@/features/config/json-utils"
+import { InboundEditorDialog } from "@/features/proxy/inbound-editor-dialog"
 import type { JsonValue } from "@/lib/api/types"
 
 type JsonObject = Record<string, JsonValue>
@@ -38,10 +39,15 @@ const fieldKeys = {
 } as const
 
 export function ProxyEditorDialog({ title, kind, item, onClose, onSave }: ProxyEditorDialogProps) {
+  if (kind === "inbounds") return <InboundEditorDialog title={title} item={item} onClose={onClose} onSave={onSave} />
+  return <OutboundEditorDialog title={title} item={item} onClose={onClose} onSave={onSave} />
+}
+
+function OutboundEditorDialog({ title, item, onClose, onSave }: Omit<ProxyEditorDialogProps, "kind">) {
   const { t } = useTranslation()
   const [value, setValue] = useState(() => JSON.stringify(item, null, 2))
   const object = editorObject(value)
-  const keys = fieldKeys[kind]
+  const keys = fieldKeys.outbounds
   const update = (key: string, fieldValue: string | number) => {
     setValue(JSON.stringify({ ...(object ?? {}), [key]: fieldValue }, null, 2))
   }

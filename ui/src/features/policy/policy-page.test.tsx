@@ -103,6 +103,26 @@ describe("PolicyPage editor shell", () => {
     expect(saveButton).toBeEnabled()
   })
 
+  it("clears structured invalid fields when advanced JSON replaces the section", async () => {
+    const config = { route: { headers: { invalid: true } } }
+    stubConfig(config)
+    const user = userEvent.setup()
+    renderPolicy(({ onFieldValidityChange }) => (
+      <button onClick={() => onFieldValidityChange("headers", false)}>标记 Headers 无效</button>
+    ))
+
+    const saveButton = await screen.findByRole("button", { name: "保存配置" })
+    await user.click(screen.getByRole("button", { name: "标记 Headers 无效" }))
+    expect(saveButton).toBeDisabled()
+    await user.click(screen.getByRole("tab", { name: "高级 JSON" }))
+    const editor = screen.getByRole("textbox", { name: "Policy JSON" })
+    await user.click(editor)
+    await user.keyboard("{Control>}a{/Control}")
+    await user.paste("{}")
+
+    expect(saveButton).toBeEnabled()
+  })
+
   it("replaces only the edited section in the saved config", async () => {
     const config = {
       route: { final: "proxy", custom: { retained: true } },

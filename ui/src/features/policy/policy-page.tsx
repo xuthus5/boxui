@@ -76,6 +76,7 @@ function usePolicyEditorState(initialSection: JsonValue) {
   const updateJSON = (next: string) => {
     setValue(next)
     setRevision((current) => current + 1)
+    setInvalidFields(new Set())
   }
   const updateFieldValidity = (path: string, valid: boolean) => {
     setInvalidFields((current) => {

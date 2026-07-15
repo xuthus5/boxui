@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { useState } from "react"
 import { cleanup, fireEvent, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
@@ -79,16 +79,19 @@ function renderFields(fields: readonly PolicyFieldSpec[], object: JsonObject = {
 }
 
 function SelectHarness() {
-  const [object, setObject] = useState<JsonObject>({ action: "route" })
+  const [object, setObject] = useState<JsonObject>({})
+  const [valid, setValid] = useState(true)
   const [, setRender] = useState(0)
   return <>
     <button onClick={() => setRender((value) => value + 1)}>Rerender</button>
     <output>{String(object.action)}</output>
+    <output aria-label="select validity">{valid ? "valid" : "invalid"}</output>
     <PolicyFormFields
-      fields={[{ path: "action", label: "action", kind: "select", options: ["route", "reject"] }]}
+      fields={[{ path: "action", label: "action", kind: "select", options: ["__unset__", "reject"], required: true }]}
       object={object}
       namespace={namespace}
       onChange={setObject}
+      onFieldValidityChange={(_path, next) => setValid(next)}
     />
   </>
 }
@@ -97,8 +100,9 @@ function StructuredHarness() {
   const [object, setObject] = useState<JsonObject>({ headers: { X: "old" }, tag: "old" })
   const [revision, setRevision] = useState(0)
   const [valid, setValid] = useState(true)
-  const updateValidity = useCallback((_path: string, next: boolean) => setValid(next), [])
+  const [, setRender] = useState(0)
   return <>
+    <button onClick={() => setRender((value) => value + 1)}>Parent rerender</button>
     <button onClick={() => { setObject((value) => ({ ...value, tag: "changed" })); setRevision((value) => value + 1) }}>Advanced JSON update</button>
     <button onClick={() => setObject((value) => ({ ...value, headers: { X: "new" } }))}>External field update</button>
     <output>{valid ? "valid" : "invalid"}</output>
@@ -108,7 +112,7 @@ function StructuredHarness() {
       namespace={namespace}
       revision={revision}
       onChange={setObject}
-      onFieldValidityChange={updateValidity}
+      onFieldValidityChange={(_path, next) => setValid(next)}
     />
   </>
 }
@@ -140,7 +144,7 @@ describe("policy form field conversions", () => {
 
     const booleanChange = renderFields([{ path: "invert", label: "invert", kind: "boolean" }], { invert: true })
     await user.click(screen.getByRole("switch", { name: label("invert") }))
-    expect(booleanChange).toHaveBeenLastCalledWith({})
+    expect(booleanChange).toHaveBeenLastCalledWith({ invert: false })
   })
 
   it("parses string and numeric lists and rejects non-finite values", () => {
@@ -166,17 +170,23 @@ describe("policy form field conversions", () => {
     expect(emptyNumberListChange).toHaveBeenLastCalledWith({})
   })
 
-  it("keeps Base UI Select items stable across parent rerenders", async () => {
+  it("uses null for required Base UI Select state without colliding with option values", async () => {
     const user = userEvent.setup()
     renderApp(<SelectHarness />)
 
     await user.click(screen.getByRole("button", { name: "Rerender" }))
-    await user.click(screen.getByRole("combobox", { name: label("action") }))
-    await user.click(await screen.findByRole("option", { name: "reject" }))
-    expect(screen.getByText("reject", { selector: "output" })).toBeInTheDocument()
-    await user.click(screen.getByRole("combobox", { name: label("action") }))
+    const select = screen.getByRole("combobox", { name: label("action") })
+    expect(select).toHaveAttribute("aria-invalid", "true")
+    expect(screen.getByLabelText("select validity")).toHaveTextContent("invalid")
+
+    await user.click(select)
+    await user.click(await screen.findByRole("option", { name: "__unset__" }))
+    expect(screen.getByText("__unset__", { selector: "output" })).toBeInTheDocument()
+    expect(select).toHaveAttribute("aria-invalid", "false")
+    await user.click(select)
     await user.click(await screen.findByRole("option", { name: label("notSet") }))
     expect(screen.getByText("undefined", { selector: "output" })).toBeInTheDocument()
+    expect(select).toHaveAttribute("aria-invalid", "true")
   })
 
   it("uses custom transforms and falls back only when they return undefined", () => {
@@ -231,6 +241,7 @@ describe("policy form field conversions", () => {
     expect(input).toHaveValue(JSON.stringify({ X: "old" }, null, 2))
 
     fireEvent.change(input, { target: { value: "invalid" } })
+    await user.click(screen.getByRole("button", { name: "Parent rerender" }))
     expect(screen.getByText("invalid", { selector: "output" })).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Advanced JSON update" }))
     expect(input).toHaveValue(JSON.stringify({ X: "old" }, null, 2))

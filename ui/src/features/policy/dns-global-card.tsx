@@ -1,4 +1,5 @@
 import { useId } from "react"
+import { useTranslation } from "react-i18next"
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
@@ -9,15 +10,17 @@ import { getPolicyPath, setPolicyPath } from "@/features/policy/policy-form-mode
 import type { PolicyVisualEditorProps } from "@/features/policy/policy-page"
 
 export function DNSGlobalCard(props: PolicyVisualEditorProps) {
-  return <Card><CardHeader><CardTitle>DNS 全局设置</CardTitle>
-    <CardDescription>管理缓存、解析策略与最终 DNS 服务器。</CardDescription></CardHeader>
+  const { t } = useTranslation()
+  return <Card><CardHeader><CardTitle>{t("policy.dns.globalTitle")}</CardTitle>
+    <CardDescription>{t("policy.dns.globalDescription")}</CardDescription></CardHeader>
     <CardContent><PolicyFormFields fields={dnsGlobalFields} object={props.object} namespace="policy.dns"
       revision={props.revision} onChange={props.onChange} onFieldValidityChange={props.onFieldValidityChange} /></CardContent>
-    <CardFooter><p className="text-muted-foreground">未知全局字段会原样保留。</p></CardFooter>
+    <CardFooter><p className="text-muted-foreground">{t("policy.dns.globalFooter")}</p></CardFooter>
   </Card>
 }
 
 export function DNSFakeIPCard(props: PolicyVisualEditorProps) {
+  const { t } = useTranslation()
   const id = useId()
   const enabled = getPolicyPath(props.object, "fakeip.enabled") === true
   const updateEnabled = (checked: boolean) => props.onChange(setPolicyPath(
@@ -25,14 +28,14 @@ export function DNSFakeIPCard(props: PolicyVisualEditorProps) {
     "fakeip.enabled",
     checked ? true : undefined,
   ))
-  return <Card><CardHeader><CardTitle>旧式 FakeIP</CardTitle>
-    <CardDescription>兼容顶层 fakeip 配置，不迁移到现代 DNS server。</CardDescription></CardHeader>
+  return <Card><CardHeader><CardTitle>{t("policy.dns.fakeIPTitle")}</CardTitle>
+    <CardDescription>{t("policy.dns.fakeIPDescription")}</CardDescription></CardHeader>
     <CardContent><FieldGroup className="gap-4"><Field orientation="horizontal">
-      <FieldLabel htmlFor={id}>启用旧式 FakeIP</FieldLabel>
-      <Switch id={id} aria-label="启用旧式 FakeIP" checked={enabled} onCheckedChange={updateEnabled} />
+      <FieldLabel htmlFor={id}>{t("policy.dns.fakeIPEnabled")}</FieldLabel>
+      <Switch id={id} aria-label={t("policy.dns.fakeIPEnabled")} checked={enabled} onCheckedChange={updateEnabled} />
     </Field><PolicyFormFields fields={legacyFakeIPFields.slice(1)} object={props.object} namespace="policy.dns"
       revision={props.revision} onChange={props.onChange} onFieldValidityChange={props.onFieldValidityChange} />
     </FieldGroup></CardContent>
-    <CardFooter><p className="text-muted-foreground">仅编辑已知字段，其他 fakeip 键保持不变。</p></CardFooter>
+    <CardFooter><p className="text-muted-foreground">{t("policy.dns.fakeIPFooter")}</p></CardFooter>
   </Card>
 }

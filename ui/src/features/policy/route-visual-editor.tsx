@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { ListPlusIcon, RouteIcon } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,40 +41,46 @@ function insertCopy(items: readonly JsonObject[], index: number) {
 function RuleSection({ object, onChange, onEdit }: {
   object: JsonObject; onChange: (object: JsonObject) => void; onEdit: (index: number | null) => void
 }) {
+  const { t } = useTranslation()
   const rules = routeRules(object)
   const update = (next: readonly JsonObject[]) => onChange(setRouteRules(object, next))
-  return <Card><CardHeader><CardTitle>路由规则</CardTitle><CardDescription>规则按列表顺序依次匹配。</CardDescription>
-    <CardAction><Button onClick={() => onEdit(null)}><ListPlusIcon data-icon="inline-start" />新增规则</Button></CardAction></CardHeader>
+  return <Card><CardHeader className="min-w-0 grid-cols-1 has-data-[slot=card-action]:grid-cols-1 sm:has-data-[slot=card-action]:grid-cols-[1fr_auto]">
+    <CardTitle>{t("policy.route.rulesTitle")}</CardTitle><CardDescription>{t("policy.route.rulesDescription")}</CardDescription>
+    <CardAction className="col-start-1 row-start-auto w-full justify-self-start sm:col-start-2 sm:row-start-1 sm:w-auto sm:justify-self-end">
+      <Button className="w-full sm:w-auto" onClick={() => onEdit(null)}><ListPlusIcon data-icon="inline-start" />{t("policy.route.addRule")}</Button>
+    </CardAction></CardHeader>
     <CardContent>{rules.length === 0
-      ? <EmptySection title="暂无路由规则" description="新增第一条匹配规则。" action="新增规则" onAdd={() => onEdit(null)} />
+      ? <EmptySection title={t("policy.route.emptyRulesTitle")} description={t("policy.route.emptyRulesDescription")}
+        action={t("policy.route.addRule")} onAdd={() => onEdit(null)} />
       : <div className="flex flex-col gap-3">{rules.map((item, index) => <RouteRuleCard key={index} index={index} item={item}
         first={index === 0} last={index === rules.length - 1} onEdit={() => onEdit(index)}
         onCopy={() => update(insertCopy(rules, index))} onMoveUp={() => update(moveItem(rules, index, -1))}
         onMoveDown={() => update(moveItem(rules, index, 1))} onDelete={() => update(rules.filter((_, itemIndex) => itemIndex !== index))} />)}</div>}
-    </CardContent><CardFooter><p className="text-muted-foreground">共 {rules.length} 条规则</p></CardFooter></Card>
+    </CardContent><CardFooter><p className="text-muted-foreground">{t("policy.route.rulesCount", { count: rules.length })}</p></CardFooter></Card>
 }
 
 function RuleSetSection({ object, onChange, onEdit }: {
   object: JsonObject; onChange: (object: JsonObject) => void; onEdit: (index: number | null) => void
 }) {
+  const { t } = useTranslation()
   const ruleSets = routeRuleSets(object)
   const update = (next: readonly JsonObject[]) => onChange(setRouteRuleSets(object, next))
-  return <Card><CardHeader><CardTitle>路由规则集</CardTitle><CardDescription>管理 inline、local、remote 与未知类型规则集。</CardDescription>
-    <CardAction><Button onClick={() => onEdit(null)}><ListPlusIcon data-icon="inline-start" />新增规则集</Button></CardAction></CardHeader>
+  return <Card><CardHeader className="min-w-0 grid-cols-1 has-data-[slot=card-action]:grid-cols-1 sm:has-data-[slot=card-action]:grid-cols-[1fr_auto]">
+    <CardTitle>{t("policy.route.ruleSetsTitle")}</CardTitle><CardDescription>{t("policy.route.ruleSetsDescription")}</CardDescription>
+    <CardAction className="col-start-1 row-start-auto w-full justify-self-start sm:col-start-2 sm:row-start-1 sm:w-auto sm:justify-self-end">
+      <Button className="w-full sm:w-auto" onClick={() => onEdit(null)}><ListPlusIcon data-icon="inline-start" />{t("policy.route.addRuleSet")}</Button>
+    </CardAction></CardHeader>
     <CardContent>{ruleSets.length === 0
-      ? <EmptySection title="暂无路由规则集" description="新增第一项规则集。" action="新增规则集" onAdd={() => onEdit(null)} />
+      ? <EmptySection title={t("policy.route.emptyRuleSetsTitle")} description={t("policy.route.emptyRuleSetsDescription")}
+        action={t("policy.route.addRuleSet")} onAdd={() => onEdit(null)} />
       : <div className="flex flex-col gap-3">{ruleSets.map((item, index) => <RouteRuleSetCard key={index} item={item}
         onEdit={() => onEdit(index)} onCopy={() => update(insertCopy(ruleSets, index))}
         onDelete={() => update(ruleSets.filter((_, itemIndex) => itemIndex !== index))} />)}</div>}
-    </CardContent><CardFooter><p className="text-muted-foreground">共 {ruleSets.length} 个规则集</p></CardFooter></Card>
-}
-
-function selectionTitle(selection: EditorSelection) {
-  if (selection.index === null) return selection.kind === "rule" ? "新增规则" : "新增规则集"
-  return selection.kind === "rule" ? `编辑规则 ${selection.index + 1}` : "编辑规则集"
+    </CardContent><CardFooter><p className="text-muted-foreground">{t("policy.route.ruleSetsCount", { count: ruleSets.length })}</p></CardFooter></Card>
 }
 
 export function RouteVisualEditor(props: PolicyVisualEditorProps): React.ReactNode {
+  const { t } = useTranslation()
   const { object, onChange } = props
   const [selection, setSelection] = useState<EditorSelection | null>(null)
   const editRule = (index: number | null) => setSelection({ kind: "rule", index, item: index === null ? { action: "route" } : routeRules(object)[index] })
@@ -91,8 +98,10 @@ export function RouteVisualEditor(props: PolicyVisualEditorProps): React.ReactNo
     <RuleSection object={object} onChange={onChange} onEdit={editRule} />
     <RuleSetSection object={object} onChange={onChange} onEdit={editRuleSet} />
     {selection?.kind === "rule" ? <RouteRuleDialog key={`${selection.index}:${JSON.stringify(selection.item)}`} open item={selection.item}
-      title={selectionTitle(selection)} onOpenChange={(open) => { if (!open) setSelection(null) }} onSave={saveSelection} /> : null}
+      title={selection.index === null ? t("policy.route.addRuleTitle") : t("policy.route.editRuleTitle", { index: selection.index + 1 })}
+      onOpenChange={(open) => { if (!open) setSelection(null) }} onSave={saveSelection} /> : null}
     {selection?.kind === "rule-set" ? <RouteRuleSetDialog key={`${selection.index}:${JSON.stringify(selection.item)}`} open item={selection.item}
-      title={selectionTitle(selection)} onOpenChange={(open) => { if (!open) setSelection(null) }} onSave={saveSelection} /> : null}
+      title={selection.index === null ? t("policy.route.addRuleSetTitle") : t("policy.route.editRuleSetTitle")}
+      onOpenChange={(open) => { if (!open) setSelection(null) }} onSave={saveSelection} /> : null}
   </div>
 }

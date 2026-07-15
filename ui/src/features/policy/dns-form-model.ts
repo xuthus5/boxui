@@ -222,29 +222,51 @@ function stringListValue(value: unknown): string {
   return value.filter((item): item is string => typeof item === "string").join(", ")
 }
 
-function serverTypeDetails(server: JsonObject, type: string): string[] {
+export interface DNSSummaryLabels {
+  path: (value: string) => string
+  predefined: (count: number) => string
+  ipv4: (value: string) => string
+  ipv6: (value: string) => string
+  tag: (value: string) => string
+  detour: (value: string) => string
+  strategy: (value: string) => string
+  logicalMode: (value: string) => string
+}
+
+const defaultSummaryLabels: DNSSummaryLabels = {
+  path: (value) => `path ${value}`,
+  predefined: (count) => `predefined ${count}`,
+  ipv4: (value) => `inet4 ${value}`,
+  ipv6: (value) => `inet6 ${value}`,
+  tag: (value) => `tag ${value}`,
+  detour: (value) => `detour ${value}`,
+  strategy: (value) => `strategy ${value}`,
+  logicalMode: (value) => `mode:${value}`,
+}
+
+function serverTypeDetails(server: JsonObject, type: string, labels: DNSSummaryLabels): string[] {
   if (type === "hosts") {
     const path = stringListValue(server.path)
     const predefined = isJsonObject(server.predefined) ? Object.keys(server.predefined).length : 0
-    return [path ? `path ${path}` : "", predefined ? `predefined ${predefined}` : ""]
+    return [path ? labels.path(path) : "", predefined ? labels.predefined(predefined) : ""]
   }
   if (type === "fakeip") {
     const inet4 = stringValue(server.inet4_range)
     const inet6 = stringValue(server.inet6_range)
-    return [inet4 ? `inet4 ${inet4}` : "", inet6 ? `inet6 ${inet6}` : ""]
+    return [inet4 ? labels.ipv4(inet4) : "", inet6 ? labels.ipv6(inet6) : ""]
   }
   return []
 }
 
-export function summarizeDNSServer(server: JsonObject): { type: string; detail: string } {
+export function summarizeDNSServer(server: JsonObject, labels = defaultSummaryLabels): { type: string; detail: string } {
   const type = inferDNSServerType(server)
   const host = stringValue(server.server)
   const port = typeof server.server_port === "number" && Number.isFinite(server.server_port) ? `:${server.server_port}` : ""
   const primary = type === "legacy" ? stringValue(server.address) : host ? `${host}${port}` : stringValue(server.interface)
-  const details = [primary, ...serverTypeDetails(server, type)]
-  if (stringValue(server.tag)) details.push(`tag ${server.tag}`)
-  if (stringValue(server.detour)) details.push(`detour ${server.detour}`)
-  if (stringValue(server.strategy)) details.push(`strategy ${server.strategy}`)
+  const details = [primary, ...serverTypeDetails(server, type, labels)]
+  if (stringValue(server.tag)) details.push(labels.tag(String(server.tag)))
+  if (stringValue(server.detour)) details.push(labels.detour(String(server.detour)))
+  if (stringValue(server.strategy)) details.push(labels.strategy(String(server.strategy)))
   return { type, detail: details.filter(Boolean).join(" · ") }
 }
 
@@ -263,8 +285,8 @@ function summarizeValue(path: string, value: unknown): string[] {
   return value === true ? [path] : []
 }
 
-export function summarizeDNSRule(rule: JsonObject): { matches: string[]; action: string } {
-  const logical = rule.type === "logical" && typeof rule.mode === "string" ? [`mode:${rule.mode}`] : []
+export function summarizeDNSRule(rule: JsonObject, labels = defaultSummaryLabels): { matches: string[]; action: string } {
+  const logical = rule.type === "logical" && typeof rule.mode === "string" ? [labels.logicalMode(rule.mode)] : []
   const matches = [...logical, ...summaryPaths.flatMap((path) => summarizeValue(path, rule[path]))]
   const action = String(rule.action ?? "route")
   const target = action === "route" && typeof rule.server === "string" && rule.server ? ` · ${rule.server}` : ""

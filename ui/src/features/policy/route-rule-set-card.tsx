@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { CopyIcon, EllipsisIcon, PencilIcon, Trash2Icon } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
@@ -17,33 +18,34 @@ interface RouteRuleSetCardProps {
 }
 
 export function RouteRuleSetCard({ item, onEdit, onCopy, onDelete }: RouteRuleSetCardProps) {
+  const { t } = useTranslation()
   const [deleting, setDeleting] = useState(false)
-  const tag = typeof item.tag === "string" && item.tag ? item.tag : "未命名"
+  const tag = typeof item.tag === "string" && item.tag ? item.tag : t("policy.route.unnamed")
   const summary = summarizeRuleSet(item)
   const confirmDelete = () => { setDeleting(false); onDelete() }
   return <>
     <Card size="sm">
-      <CardHeader><CardTitle>{tag}</CardTitle><CardDescription>{summary.detail || "未设置路径或 URL"}</CardDescription>
-        <CardAction><Button variant="outline" size="xs" aria-label={`编辑规则集 ${tag}`} onClick={onEdit}><PencilIcon data-icon="inline-start" />编辑</Button></CardAction>
+      <CardHeader className="min-w-0"><CardTitle>{tag}</CardTitle><CardDescription className="min-w-0 break-words">{summary.detail || t("policy.route.ruleSetLocationMissing")}</CardDescription>
+        <CardAction><Button variant="outline" size="xs" aria-label={t("policy.route.editRuleSet", { tag })} onClick={onEdit}><PencilIcon data-icon="inline-start" />{t("policy.route.edit")}</Button></CardAction>
       </CardHeader>
       <CardContent><Badge variant="secondary">{summary.type}</Badge></CardContent>
       <CardFooter className="justify-between gap-2">
         <div className="hidden gap-1 sm:flex">
-          <Button variant="outline" size="icon-xs" aria-label={`复制规则集 ${tag}`} onClick={onCopy}><CopyIcon data-icon="inline-start" /></Button>
-          <Button variant="destructive" size="icon-xs" aria-label={`删除规则集 ${tag}`} onClick={() => setDeleting(true)}><Trash2Icon data-icon="inline-start" /></Button>
+          <Button variant="outline" size="icon-xs" aria-label={t("policy.route.copyRuleSet", { tag })} onClick={onCopy}><CopyIcon data-icon="inline-start" /></Button>
+          <Button variant="destructive" size="icon-xs" aria-label={t("policy.route.deleteRuleSet", { tag })} onClick={() => setDeleting(true)}><Trash2Icon data-icon="inline-start" /></Button>
         </div>
         <div className="sm:hidden"><DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="outline" size="icon-xs" aria-label={`更多规则集 ${tag}`} />}><EllipsisIcon data-icon="inline-start" /></DropdownMenuTrigger>
+          <DropdownMenuTrigger render={<Button variant="outline" size="icon-xs" aria-label={t("policy.route.moreRuleSetActions", { tag })} />}><EllipsisIcon data-icon="inline-start" /></DropdownMenuTrigger>
           <DropdownMenuContent align="end"><DropdownMenuGroup>
-            <DropdownMenuItem onClick={onCopy}><CopyIcon />复制</DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" onClick={() => setDeleting(true)}><Trash2Icon />删除</DropdownMenuItem>
+            <DropdownMenuItem onClick={onCopy}><CopyIcon />{t("policy.route.copy")}</DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onClick={() => setDeleting(true)}><Trash2Icon />{t("policy.route.delete")}</DropdownMenuItem>
           </DropdownMenuGroup></DropdownMenuContent>
         </DropdownMenu></div>
       </CardFooter>
     </Card>
     <AlertDialog open={deleting} onOpenChange={setDeleting}><AlertDialogContent>
-      <AlertDialogHeader><AlertDialogTitle>删除规则集 {tag}？</AlertDialogTitle><AlertDialogDescription>此操作无法撤销。</AlertDialogDescription></AlertDialogHeader>
-      <AlertDialogFooter><AlertDialogCancel>取消</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={confirmDelete}>确认删除</AlertDialogAction></AlertDialogFooter>
+      <AlertDialogHeader><AlertDialogTitle>{t("policy.route.deleteRuleSetTitle", { tag })}</AlertDialogTitle><AlertDialogDescription>{t("policy.route.deleteDescription")}</AlertDialogDescription></AlertDialogHeader>
+      <AlertDialogFooter><AlertDialogCancel>{t("policy.route.cancel")}</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={confirmDelete}>{t("policy.route.confirmDelete")}</AlertDialogAction></AlertDialogFooter>
     </AlertDialogContent></AlertDialog>
   </>
 }

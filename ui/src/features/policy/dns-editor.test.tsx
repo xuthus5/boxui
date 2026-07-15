@@ -183,7 +183,7 @@ describe("DNS server cards", () => {
       detour: "direct", strategy: "prefer_ipv4",
     }] }} />)
     expect(screen.getByText("https", { selector: '[data-slot="badge"]' })).toBeInTheDocument()
-    expect(screen.getByText(/dns\.example:443 · tag remote · detour direct · strategy prefer_ipv4/)).toBeInTheDocument()
+    expect(screen.getByText(/dns\.example:443 · 标签 remote · 前置出站 direct · 策略 prefer_ipv4/)).toBeInTheDocument()
   })
 
   it("adds, summarizes, copies deeply, and deletes after confirmation", async () => {

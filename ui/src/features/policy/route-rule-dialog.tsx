@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
@@ -57,12 +59,13 @@ function requiredRuleValue(object: JsonObject): boolean {
 }
 
 function RuleTypeSelect({ object, onChange }: { object: JsonObject; onChange: (item: JsonObject) => void }) {
+  const { t } = useTranslation()
   const current = String(object.type ?? "default")
   const options = useMemo(() => optionsWithCurrent(["default", "logical"], current), [current])
   const items = useMemo(() => options.map((value) => ({ value, label: value })), [options])
-  return <FieldGroup><Field><FieldLabel htmlFor="route-rule-type">规则类型</FieldLabel>
+  return <FieldGroup><Field><FieldLabel htmlFor="route-rule-type">{t("policy.route.ruleType")}</FieldLabel>
     <Select items={items} value={current} onValueChange={(value) => onChange(changeRouteRuleType(object, String(value)))}>
-      <SelectTrigger id="route-rule-type" aria-label="规则类型" className="w-full"><SelectValue /></SelectTrigger>
+      <SelectTrigger id="route-rule-type" aria-label={t("policy.route.ruleType")} className="w-full"><SelectValue /></SelectTrigger>
       <SelectContent><SelectGroup>{options.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectGroup></SelectContent>
     </Select>
   </Field></FieldGroup>
@@ -72,19 +75,20 @@ function ActionFields({ object, revision, onChange, onValidity }: {
   object: JsonObject; revision: number; onChange: (item: JsonObject) => void
   onValidity: (path: string, valid: boolean) => void
 }) {
+  const { t } = useTranslation()
   const current = String(object.action ?? "route")
   const options = useMemo(() => optionsWithCurrent(routeActions, current), [current])
   const items = useMemo(() => options.map((value) => ({ value, label: value })), [options])
-  return <>
-    <FieldGroup><Field><FieldLabel htmlFor="route-rule-action">执行动作</FieldLabel>
+  return <div className="flex flex-col gap-4">
+    <FieldGroup><Field><FieldLabel htmlFor="route-rule-action">{t("policy.route.actionType")}</FieldLabel>
       <Select items={items} value={current} onValueChange={(value) => onChange(changeRouteAction(object, String(value)))}>
-        <SelectTrigger id="route-rule-action" aria-label="执行动作" className="w-full"><SelectValue /></SelectTrigger>
+        <SelectTrigger id="route-rule-action" aria-label={t("policy.route.actionType")} className="w-full"><SelectValue /></SelectTrigger>
         <SelectContent><SelectGroup>{options.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectGroup></SelectContent>
       </Select>
     </Field></FieldGroup>
     <PolicyFormFields fields={routeActionFields[current] ?? []} object={object} namespace="policy.route"
       revision={revision} onChange={onChange} onFieldValidityChange={onValidity} />
-  </>
+  </div>
 }
 
 interface RuleTabsProps {
@@ -108,24 +112,28 @@ function StructuredFields({ object, fields, revision, onChange, onValidity }: {
 function AdvancedJSONField({ value, title, onChange }: {
   value: string; title: string; onChange: (value: string) => void
 }) {
-  return <FieldGroup><Field><FieldLabel className="sr-only">高级 JSON</FieldLabel>
-    <JsonEditor value={value} onChange={onChange} ariaLabel={`${title} JSON`} />
+  const { t } = useTranslation()
+  return <FieldGroup><Field><FieldLabel className="sr-only">{t("policy.route.advancedJSON")}</FieldLabel>
+    <JsonEditor value={value} onChange={onChange} ariaLabel={t("policy.route.advancedJSONLabel", { title })} />
   </Field></FieldGroup>
 }
 
 function RuleTabs(props: RuleTabsProps) {
+  const { t } = useTranslation()
   const { object, value, title, revision, onChange, onJSONChange, onValidity } = props
   const logical = object.type === "logical"
-  return <Tabs defaultValue="basic" className="min-h-0">
-    <TabsList className="h-auto w-full justify-start overflow-x-auto" variant="line">
-      <TabsTrigger value="basic">基础与网络</TabsTrigger><TabsTrigger value="domain">域名与地址</TabsTrigger>
-      <TabsTrigger value="process">端口与进程</TabsTrigger><TabsTrigger value="environment">规则集与网络环境</TabsTrigger>
-      <TabsTrigger value="action">执行动作</TabsTrigger><TabsTrigger value="advanced">高级 JSON</TabsTrigger>
+  return <Tabs defaultValue="basic" className="min-h-0 min-w-0">
+    <TabsList activateOnFocus className="h-auto max-w-full justify-start overflow-x-auto" variant="line">
+      <TabsTrigger value="basic">{t("policy.route.basicTab")}</TabsTrigger><TabsTrigger value="domain">{t("policy.route.domainTab")}</TabsTrigger>
+      <TabsTrigger value="process">{t("policy.route.processTab")}</TabsTrigger><TabsTrigger value="environment">{t("policy.route.environmentTab")}</TabsTrigger>
+      <TabsTrigger value="action">{t("policy.route.actionTab")}</TabsTrigger><TabsTrigger value="advanced">{t("policy.route.advancedJSON")}</TabsTrigger>
     </TabsList>
     <TabsContent value="basic" className="pt-4" keepMounted>
-      <><RuleTypeSelect object={object} onChange={onChange} />
+      <div className="flex flex-col gap-4"><RuleTypeSelect object={object} onChange={onChange} />
         <StructuredFields object={object} fields={logical ? logicalFields : basicFields.slice(1)} revision={revision} onChange={onChange} onValidity={onValidity} />
-      </>
+        {logical ? <Alert><AlertTitle>{t("policy.route.logicalTitle")}</AlertTitle>
+          <AlertDescription>{t("policy.route.logicalDescription")}</AlertDescription></Alert> : null}
+      </div>
     </TabsContent>
     <TabsContent value="domain" className="pt-4" keepMounted><StructuredFields object={object} fields={logical ? [] : domainFields} revision={revision} onChange={onChange} onValidity={onValidity} /></TabsContent>
     <TabsContent value="process" className="pt-4" keepMounted><StructuredFields object={object} fields={logical ? [] : processFields} revision={revision} onChange={onChange} onValidity={onValidity} /></TabsContent>
@@ -136,6 +144,7 @@ function RuleTabs(props: RuleTabsProps) {
 }
 
 export function RouteRuleDialog({ open, item, title, onOpenChange, onSave }: RouteRuleDialogProps) {
+  const { t } = useTranslation()
   const [value, setValue] = useState(() => JSON.stringify(item, null, 2))
   const [revision, setRevision] = useState(0)
   const [invalidFields, setInvalidFields] = useState(() => new Set<string>())
@@ -147,16 +156,19 @@ export function RouteRuleDialog({ open, item, title, onOpenChange, onSave }: Rou
     if (valid) next.delete(path); else next.add(path)
     return next
   }), [])
-  const canSave = Boolean(object && requiredRuleValue(object) && requiredActionValue(object) && invalidFields.size === 0)
+  const requiredValid = Boolean(object && requiredRuleValue(object) && requiredActionValue(object))
+  const canSave = requiredValid && invalidFields.size === 0
   return <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-5xl">
-      <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>常用匹配与动作可视化编辑，未知字段保留在高级 JSON 中。</DialogDescription></DialogHeader>
-      <div className="min-h-0 overflow-y-auto pr-1">
+    <DialogContent className="max-h-[calc(100dvh-2rem)] min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-x-hidden sm:max-w-5xl">
+      <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{t("policy.route.ruleDialogDescription")}</DialogDescription></DialogHeader>
+      <div className="min-h-0 min-w-0 overflow-y-auto pr-1"><div className="flex min-w-0 flex-col gap-4">
+        {object && !requiredValid ? <Alert variant="destructive"><AlertTitle>{t("policy.route.requiredTitle")}</AlertTitle>
+          <AlertDescription>{t("policy.route.ruleRequiredDescription")}</AlertDescription></Alert> : null}
         {object ? <RuleTabs object={object} value={value} title={title} revision={revision} onChange={update} onJSONChange={updateJSON} onValidity={updateValidity} />
           : <AdvancedJSONField value={value} title={title} onChange={updateJSON} />}
-      </div>
-      <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
-        <Button disabled={!canSave} onClick={() => { if (object) onSave(object) }}>保存</Button></DialogFooter>
+      </div></div>
+      <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>{t("policy.route.cancel")}</Button>
+        <Button disabled={!canSave} onClick={() => { if (object) onSave(object) }}>{t("policy.route.save")}</Button></DialogFooter>
     </DialogContent>
   </Dialog>
 }

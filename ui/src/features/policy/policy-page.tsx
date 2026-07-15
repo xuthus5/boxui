@@ -94,11 +94,12 @@ function PolicyEditorTabs({
   onFieldValidityChange,
   renderVisual,
 }: PolicyEditorTabsProps) {
+  const { t } = useTranslation()
   return (
-    <Tabs defaultValue="visual">
-      <TabsList>
-        <TabsTrigger value="visual">可视化配置</TabsTrigger>
-        <TabsTrigger value="json">高级 JSON</TabsTrigger>
+    <Tabs defaultValue="visual" className="min-w-0">
+      <TabsList activateOnFocus className="max-w-full overflow-x-auto">
+        <TabsTrigger value="visual">{t("policy.visualTab")}</TabsTrigger>
+        <TabsTrigger value="json">{t("policy.advancedTab")}</TabsTrigger>
       </TabsList>
       <TabsContent value="visual">
         {object ? renderVisual({ object, revision, onChange, onFieldValidityChange }) : null}
@@ -106,8 +107,8 @@ function PolicyEditorTabs({
       <TabsContent value="json">
         <FieldGroup>
           <Field>
-            <FieldLabel className="sr-only">Policy JSON</FieldLabel>
-            <JsonEditor value={value} onChange={onJSONChange} ariaLabel="Policy JSON" />
+            <FieldLabel className="sr-only">{t("policy.jsonLabel")}</FieldLabel>
+            <JsonEditor value={value} onChange={onJSONChange} ariaLabel={t("policy.jsonLabel")} />
           </Field>
         </FieldGroup>
       </TabsContent>
@@ -146,7 +147,7 @@ function PolicyEditor({
           renderVisual={renderVisual}
         />
       </CardContent>
-      <CardFooter className="justify-between gap-2">
+      <CardFooter className="flex-wrap justify-between gap-2">
         <Button variant="outline" onClick={onInstall}>{installLabel}</Button>
         <Button disabled={!editor.object || editor.invalidFields.size > 0} onClick={savePolicy}>
           {t("policy.save")}

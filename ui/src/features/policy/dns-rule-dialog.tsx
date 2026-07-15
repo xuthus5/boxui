@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -43,23 +44,25 @@ function requiredActionValue(object: JsonObject): boolean {
 }
 
 function RuleTypeField({ object, onChange }: { object: JsonObject; onChange: (item: JsonObject) => void }) {
+  const { t } = useTranslation()
   const current = String(object.type ?? "default")
   const options = useMemo(() => optionsWithCurrent(["default", "logical"], current), [current])
   const items = useMemo(() => options.map((value) => ({ value, label: value })), [options])
-  return <Field><FieldLabel htmlFor="dns-rule-type">规则类型</FieldLabel>
+  return <Field><FieldLabel htmlFor="dns-rule-type">{t("policy.dns.ruleType")}</FieldLabel>
     <Select items={items} value={current} onValueChange={(value) => onChange(changeDNSRuleType(object, String(value)))}>
-      <SelectTrigger id="dns-rule-type" aria-label="规则类型" className="w-full"><SelectValue /></SelectTrigger>
+      <SelectTrigger id="dns-rule-type" aria-label={t("policy.dns.ruleType")} className="w-full"><SelectValue /></SelectTrigger>
       <SelectContent><SelectGroup>{options.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectGroup></SelectContent>
     </Select></Field>
 }
 
 function ActionTypeField({ object, onChange }: { object: JsonObject; onChange: (item: JsonObject) => void }) {
+  const { t } = useTranslation()
   const current = String(object.action ?? "route")
   const options = useMemo(() => optionsWithCurrent(dnsActions, current), [current])
   const items = useMemo(() => options.map((value) => ({ value, label: value })), [options])
-  return <Field><FieldLabel htmlFor="dns-rule-action">执行动作</FieldLabel>
+  return <Field><FieldLabel htmlFor="dns-rule-action">{t("policy.dns.actionType")}</FieldLabel>
     <Select items={items} value={current} onValueChange={(value) => onChange(changeDNSAction(object, String(value)))}>
-      <SelectTrigger id="dns-rule-action" aria-label="执行动作" className="w-full"><SelectValue /></SelectTrigger>
+      <SelectTrigger id="dns-rule-action" aria-label={t("policy.dns.actionType")} className="w-full"><SelectValue /></SelectTrigger>
       <SelectContent><SelectGroup>{options.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectGroup></SelectContent>
     </Select></Field>
 }
@@ -67,13 +70,14 @@ function ActionTypeField({ object, onChange }: { object: JsonObject; onChange: (
 function RouteServerField({ object, tags, onChange }: {
   object: JsonObject; tags: readonly string[]; onChange: (item: JsonObject) => void
 }) {
+  const { t } = useTranslation()
   const current = typeof object.server === "string" ? object.server : ""
   const options = useMemo(() => optionsWithCurrent(tags, current), [current, tags])
-  const items = useMemo(() => [{ value: null, label: "未设置" }, ...options.map((value) => ({ value, label: value }))], [options])
-  return <Field data-invalid={!current}><FieldLabel htmlFor="dns-rule-server">目标 DNS 服务器</FieldLabel>
+  const items = useMemo(() => [{ value: null, label: t("policy.dns.notSet") }, ...options.map((value) => ({ value, label: value }))], [options, t])
+  return <Field data-invalid={!current}><FieldLabel htmlFor="dns-rule-server">{t("policy.dns.targetServer")}</FieldLabel>
     <Select items={items} value={current || null} onValueChange={(value) => onChange(setPolicyPath(object, "server", value ? String(value) : undefined))}>
-      <SelectTrigger id="dns-rule-server" aria-label="目标 DNS 服务器" aria-invalid={!current} className="w-full"><SelectValue /></SelectTrigger>
-      <SelectContent><SelectGroup><SelectItem value={null}>未设置</SelectItem>
+      <SelectTrigger id="dns-rule-server" aria-label={t("policy.dns.targetServer")} aria-invalid={!current} className="w-full"><SelectValue /></SelectTrigger>
+      <SelectContent><SelectGroup><SelectItem value={null}>{t("policy.dns.notSet")}</SelectItem>
         {options.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectGroup></SelectContent>
     </Select></Field>
 }
@@ -96,23 +100,25 @@ function ActionFields({ state, serverTags }: { state: ReturnType<typeof useDNSDi
 function AdvancedJSON({ value, title, revision, onChange }: {
   value: string; title: string; revision: number; onChange: (value: string) => void
 }) {
-  return <FieldGroup><Field><FieldLabel className="sr-only">高级 JSON</FieldLabel>
-    <JsonEditor key={revision} value={value} onChange={onChange} ariaLabel={`${title} JSON`} />
+  const { t } = useTranslation()
+  return <FieldGroup><Field><FieldLabel className="sr-only">{t("policy.dns.advancedJSON")}</FieldLabel>
+    <JsonEditor key={revision} value={value} onChange={onChange} ariaLabel={t("policy.dns.advancedJSONLabel", { title })} />
   </Field></FieldGroup>
 }
 
 function RuleTabs({ state, title, serverTags }: {
   state: ReturnType<typeof useDNSDialogState>; title: string; serverTags: readonly string[]
 }) {
+  const { t } = useTranslation()
   const logical = state.object.type === "logical"
-  return <Tabs defaultValue="basic" className="min-h-0"><TabsList className="h-auto w-full justify-start overflow-x-auto" variant="line">
-    <TabsTrigger value="basic">基础与网络</TabsTrigger><TabsTrigger value="domain">域名与地址</TabsTrigger>
-    <TabsTrigger value="process">端口与环境</TabsTrigger><TabsTrigger value="action">执行动作</TabsTrigger>
-    <TabsTrigger value="advanced">高级 JSON</TabsTrigger></TabsList>
+  return <Tabs defaultValue="basic" className="min-h-0 min-w-0"><TabsList activateOnFocus className="h-auto max-w-full justify-start overflow-x-auto" variant="line">
+    <TabsTrigger value="basic">{t("policy.dns.ruleBasicTab")}</TabsTrigger><TabsTrigger value="domain">{t("policy.dns.domainTab")}</TabsTrigger>
+    <TabsTrigger value="process">{t("policy.dns.processTab")}</TabsTrigger><TabsTrigger value="action">{t("policy.dns.actionTab")}</TabsTrigger>
+    <TabsTrigger value="advanced">{t("policy.dns.advancedJSON")}</TabsTrigger></TabsList>
     <TabsContent value="basic" className="pt-4" keepMounted><FieldGroup className="gap-4">
       <RuleTypeField object={state.object} onChange={state.update} />
       <FormFields state={state} fields={logical ? logicalFields : [...basicFields, dnsRuleMatchFields.at(-1)!]} />
-      {logical ? <Alert><AlertTitle>逻辑规则</AlertTitle><AlertDescription>逻辑子规则请在高级 JSON 中维护。</AlertDescription></Alert> : null}
+      {logical ? <Alert><AlertTitle>{t("policy.dns.logicalTitle")}</AlertTitle><AlertDescription>{t("policy.dns.logicalDescription")}</AlertDescription></Alert> : null}
     </FieldGroup></TabsContent>
     <TabsContent value="domain" className="pt-4" keepMounted><FormFields state={state} fields={logical ? [] : domainFields} /></TabsContent>
     <TabsContent value="process" className="pt-4" keepMounted><FormFields state={state} fields={logical ? [] : processFields} /></TabsContent>
@@ -123,17 +129,18 @@ function RuleTabs({ state, title, serverTags }: {
 }
 
 export function DNSRuleDialog({ open, item, title, serverTags, onOpenChange, onSave }: DNSRuleDialogProps) {
+  const { t } = useTranslation()
   const state = useDNSDialogState(item)
   const requiredValid = requiredRuleValues(state.object) && requiredActionValue(state.object)
   const canSave = Boolean(state.jsonValid && requiredValid && state.invalidFields.size === 0)
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-5xl">
-    <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>常用匹配与 DNS 动作可视化编辑，复杂子规则保留在高级 JSON 中。</DialogDescription></DialogHeader>
-    <div className="min-h-0 overflow-y-auto pr-1"><div className="flex flex-col gap-4">
-      {!requiredValid ? <Alert variant="destructive"><AlertTitle>缺少必填字段</AlertTitle>
-        <AlertDescription>请补全逻辑规则或当前动作的必填值。</AlertDescription></Alert> : null}
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[calc(100dvh-2rem)] min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-x-hidden sm:max-w-5xl">
+    <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{t("policy.dns.ruleDialogDescription")}</DialogDescription></DialogHeader>
+    <div className="min-h-0 min-w-0 overflow-y-auto pr-1"><div className="flex min-w-0 flex-col gap-4">
+      {!requiredValid ? <Alert variant="destructive"><AlertTitle>{t("policy.dns.requiredTitle")}</AlertTitle>
+        <AlertDescription>{t("policy.dns.ruleRequiredDescription")}</AlertDescription></Alert> : null}
       <RuleTabs state={state} title={title} serverTags={serverTags} />
     </div></div>
-    <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
-      <Button disabled={!canSave} onClick={() => { if (state.jsonValid) onSave(state.object) }}>保存</Button></DialogFooter>
+    <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>{t("policy.dns.cancel")}</Button>
+      <Button disabled={!canSave} onClick={() => { if (state.jsonValid) onSave(state.object) }}>{t("policy.dns.save")}</Button></DialogFooter>
   </DialogContent></Dialog>
 }

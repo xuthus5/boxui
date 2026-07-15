@@ -38,7 +38,7 @@ make dev
 
 - **仪表盘**：服务启停/重启、实时流量、内存 GC、DNS/FakeIP 维护、最近日志
 - **代理配置**：按 sing-box 类型结构化编辑入站与出站参数、TLS/Reality、传输与复用，并保留高级 JSON 编辑能力
-- **流量策略**：卡片化编辑路由规则、规则集、DNS 服务器与 DNS 规则，并保留高级 JSON
+- **流量策略**：以卡片表单编辑路由规则、规则集、DNS 服务器和 DNS 规则，并保留 Advanced JSON
 - **节点与订阅**：响应式节点卡片、按来源分组、节点级与分组批量 TCP/HTTP/ICMP 测速，订阅 URLTest 字段级覆盖与自动配置同步
 - **运行观测**：内核日志、应用日志、活跃连接管理
 - **sing-box 高级配置**：Endpoints、Experimental、完整 JSON 配置编辑

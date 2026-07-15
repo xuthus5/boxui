@@ -1,6 +1,31 @@
-import { expect, test, type Page, type Route } from "@playwright/test"
+import { expect, test, type Locator, type Page, type Route } from "@playwright/test"
 
-const config = { inbounds: [], outbounds: [], route: {}, dns: {}, endpoints: [], experimental: {} }
+const config = {
+  inbounds: [],
+  outbounds: [],
+  route: {
+    final: "proxy",
+    rules: [
+      { domain_suffix: ["example.com"], action: "route", outbound: "proxy" },
+      { action: "reject" },
+    ],
+    rule_set: [{ type: "remote", tag: "geo", url: "https://example.com/geo.srs" }],
+  },
+  dns: {
+    final: "legacy",
+    fakeip: { enabled: true, inet4_range: "198.18.0.0/15" },
+    servers: [
+      { tag: "legacy", address: "local" },
+      { type: "https", tag: "remote", server: "dns.example", server_port: 443 },
+    ],
+    rules: [
+      { domain_suffix: ["example.com"], action: "route", server: "remote" },
+      { action: "reject" },
+    ],
+  },
+  endpoints: [],
+  experimental: {},
+}
 const nodes = [
   { tag: "hk-01", type: "vless", server: "example.com", port: 443, source: "import", raw: {} },
   { tag: "us-01", type: "trojan", server: "us.example.com", port: 443, source: "subscription", source_name: "主订阅", raw: {} },
@@ -52,6 +77,75 @@ async function login(page: Page) {
   await page.getByLabel(/密码|Password/).fill("secret")
   await page.getByRole("button", { name: /登录|Sign in/ }).click()
   await expect(page.getByRole("heading", { name: /仪表盘|Dashboard/ })).toBeVisible()
+}
+
+async function expectPageFitsViewport(page: Page) {
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+  const cards = page.locator("main [data-slot=card]")
+  const boxes = await cards.evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().toJSON()))
+  expect(boxes.length).toBeGreaterThan(0)
+  for (const box of boxes) {
+    expect(box.x).toBeGreaterThanOrEqual(0)
+    expect(box.x + box.width).toBeLessThanOrEqual(320)
+  }
+}
+
+async function openMenuWithKeyboard(page: Page, name: string) {
+  const trigger = page.getByRole("button", { name })
+  await trigger.focus()
+  await page.keyboard.press("Shift+Tab")
+  await page.keyboard.press("Tab")
+  await expect(trigger).toBeFocused()
+  await page.keyboard.press("Enter")
+  await expect(page.getByRole("menu")).toBeVisible()
+  await page.keyboard.press("Escape")
+}
+
+async function expectKeyboardTabs(page: Page, dialog: Locator, first: string, next: string) {
+  const firstTab = dialog.getByRole("tab", { name: first })
+  await firstTab.focus()
+  await page.keyboard.press("Tab")
+  await page.keyboard.press("Shift+Tab")
+  await expect(firstTab).toBeFocused()
+  await firstTab.press("ArrowRight")
+  const nextTab = dialog.getByRole("tab", { name: next })
+  await expect(nextTab).toBeFocused()
+  await expect(nextTab).toHaveAttribute("aria-selected", "true")
+  await expect(dialog.getByRole("tabpanel")).toBeVisible()
+}
+
+async function expectDialogFitsViewport(dialog: Locator) {
+  const box = await dialog.boundingBox()
+  expect(box).not.toBeNull()
+  expect(box!.x).toBeGreaterThanOrEqual(0)
+  expect(box!.x + box!.width).toBeLessThanOrEqual(320)
+  expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+}
+
+async function checkRoutePolicy(page: Page) {
+  await page.goto("/policy/route")
+  await expect(page.getByRole("heading", { name: "Route" })).toBeVisible()
+  await expectPageFitsViewport(page)
+  await openMenuWithKeyboard(page, "More actions for route rule 1")
+  await page.getByRole("button", { name: "Edit route rule 1" }).click()
+  const dialog = page.getByRole("dialog", { name: "Edit route rule 1" })
+  await expectDialogFitsViewport(dialog)
+  await expectKeyboardTabs(page, dialog, "Basics and network", "Domains and addresses")
+  await dialog.getByRole("button", { name: "Cancel" }).click()
+  await expectPageFitsViewport(page)
+}
+
+async function checkDNSPolicy(page: Page) {
+  await page.goto("/policy/dns")
+  await expect(page.getByRole("heading", { name: "DNS" })).toBeVisible()
+  await expectPageFitsViewport(page)
+  await openMenuWithKeyboard(page, "More actions for DNS server legacy")
+  await page.getByRole("button", { name: "Edit DNS server legacy" }).click()
+  const dialog = page.getByRole("dialog", { name: "Edit DNS server" })
+  await expectDialogFitsViewport(dialog)
+  await expectKeyboardTabs(page, dialog, "Basics", "Dialing and resolution")
+  await dialog.getByRole("button", { name: "Cancel" }).click()
+  await expectPageFitsViewport(page)
 }
 
 test("smoke: login, navigation, log tabs, and raw save", async ({ page }) => {
@@ -112,4 +206,16 @@ test("subscription URLTest policy fits a 320px viewport", async ({ page }) => {
   await expect(dialog.getByRole("button", { name: "Disable" })).toBeVisible()
   expect(await dialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBe(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0)
+})
+
+test("route and DNS policy editors fit 320px and remain keyboard reachable", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 })
+  await page.addInitScript(() => {
+    localStorage.setItem("boxui.preferences.v1", JSON.stringify({ theme: "system", language: "en" }))
+  })
+  await page.route("http://127.0.0.1:4173/api/**", fulfillAPI)
+  await login(page)
+
+  await checkRoutePolicy(page)
+  await checkDNSPolicy(page)
 })

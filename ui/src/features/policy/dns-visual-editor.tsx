@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { ListPlusIcon, ServerIcon } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,41 +41,47 @@ function EmptySection({ title, description, action, onAdd }: {
 function ServerSection({ object, onChange, onEdit }: {
   object: JsonObject; onChange: (object: JsonObject) => void; onEdit: (index: number | null) => void
 }) {
+  const { t } = useTranslation()
   const servers = dnsServers(object)
   const update = (next: readonly JsonObject[]) => onChange(setDNSServers(object, next))
-  return <Card><CardHeader><CardTitle>DNS 服务器</CardTitle><CardDescription>管理旧式和现代 DNS server。</CardDescription>
-    <CardAction><Button onClick={() => onEdit(null)}><ListPlusIcon data-icon="inline-start" />新增 DNS 服务器</Button></CardAction></CardHeader>
+  return <Card><CardHeader className="min-w-0 grid-cols-1 has-data-[slot=card-action]:grid-cols-1 sm:has-data-[slot=card-action]:grid-cols-[1fr_auto]">
+    <CardTitle>{t("policy.dns.serversTitle")}</CardTitle><CardDescription>{t("policy.dns.serversDescription")}</CardDescription>
+    <CardAction className="col-start-1 row-start-auto w-full justify-self-start sm:col-start-2 sm:row-start-1 sm:w-auto sm:justify-self-end">
+      <Button className="w-full sm:w-auto" onClick={() => onEdit(null)}><ListPlusIcon data-icon="inline-start" />{t("policy.dns.addServer")}</Button>
+    </CardAction></CardHeader>
     <CardContent>{servers.length === 0
-      ? <EmptySection title="暂无 DNS 服务器" description="新增第一台 DNS 服务器。" action="新增 DNS 服务器" onAdd={() => onEdit(null)} />
+      ? <EmptySection title={t("policy.dns.emptyServersTitle")} description={t("policy.dns.emptyServersDescription")}
+        action={t("policy.dns.addServer")} onAdd={() => onEdit(null)} />
       : <div className="flex flex-col gap-3">{servers.map((item, index) => <DNSServerCard key={index} item={item}
         onEdit={() => onEdit(index)} onCopy={() => update(insertCopy(servers, index))}
         onDelete={() => update(servers.filter((_, itemIndex) => itemIndex !== index))} />)}</div>}</CardContent>
-    <CardFooter><p className="text-muted-foreground">共 {servers.length} 台服务器</p></CardFooter></Card>
+    <CardFooter><p className="text-muted-foreground">{t("policy.dns.serversCount", { count: servers.length })}</p></CardFooter></Card>
 }
 
 function RuleSection({ object, onChange, onEdit }: {
   object: JsonObject; onChange: (object: JsonObject) => void; onEdit: (index: number | null) => void
 }) {
+  const { t } = useTranslation()
   const rules = dnsRules(object)
   const update = (next: readonly JsonObject[]) => onChange(setDNSRules(object, next))
-  return <Card><CardHeader><CardTitle>DNS 规则</CardTitle><CardDescription>规则按列表顺序依次匹配。</CardDescription>
-    <CardAction><Button onClick={() => onEdit(null)}><ListPlusIcon data-icon="inline-start" />新增 DNS 规则</Button></CardAction></CardHeader>
+  return <Card><CardHeader className="min-w-0 grid-cols-1 has-data-[slot=card-action]:grid-cols-1 sm:has-data-[slot=card-action]:grid-cols-[1fr_auto]">
+    <CardTitle>{t("policy.dns.rulesTitle")}</CardTitle><CardDescription>{t("policy.dns.rulesDescription")}</CardDescription>
+    <CardAction className="col-start-1 row-start-auto w-full justify-self-start sm:col-start-2 sm:row-start-1 sm:w-auto sm:justify-self-end">
+      <Button className="w-full sm:w-auto" onClick={() => onEdit(null)}><ListPlusIcon data-icon="inline-start" />{t("policy.dns.addRule")}</Button>
+    </CardAction></CardHeader>
     <CardContent>{rules.length === 0
-      ? <EmptySection title="暂无 DNS 规则" description="新增第一条 DNS 匹配规则。" action="新增 DNS 规则" onAdd={() => onEdit(null)} />
+      ? <EmptySection title={t("policy.dns.emptyRulesTitle")} description={t("policy.dns.emptyRulesDescription")}
+        action={t("policy.dns.addRule")} onAdd={() => onEdit(null)} />
       : <div className="flex flex-col gap-3">{rules.map((item, index) => <DNSRuleCard key={index} index={index} item={item}
         first={index === 0} last={index === rules.length - 1} onEdit={() => onEdit(index)}
         onCopy={() => update(insertCopy(rules, index))} onMoveUp={() => update(moveItem(rules, index, -1))}
         onMoveDown={() => update(moveItem(rules, index, 1))}
         onDelete={() => update(rules.filter((_, itemIndex) => itemIndex !== index))} />)}</div>}</CardContent>
-    <CardFooter><p className="text-muted-foreground">共 {rules.length} 条规则</p></CardFooter></Card>
-}
-
-function selectionTitle(selection: EditorSelection): string {
-  if (selection.index === null) return selection.kind === "server" ? "新增 DNS 服务器" : "新增 DNS 规则"
-  return selection.kind === "server" ? "编辑 DNS 服务器" : `编辑 DNS 规则 ${selection.index + 1}`
+    <CardFooter><p className="text-muted-foreground">{t("policy.dns.rulesCount", { count: rules.length })}</p></CardFooter></Card>
 }
 
 export function DNSVisualEditor(props: PolicyVisualEditorProps): React.ReactNode {
+  const { t } = useTranslation()
   const { object, onChange } = props
   const [selection, setSelection] = useState<EditorSelection | null>(null)
   const editServer = (index: number | null) => setSelection({ kind: "server", index,
@@ -94,9 +101,10 @@ export function DNSVisualEditor(props: PolicyVisualEditorProps): React.ReactNode
     <ServerSection object={object} onChange={onChange} onEdit={editServer} />
     <RuleSection object={object} onChange={onChange} onEdit={editRule} />
     {selection?.kind === "server" ? <DNSServerDialog key={`${selection.index}:${JSON.stringify(selection.item)}`} open
-      item={selection.item} title={selectionTitle(selection)} onOpenChange={(open) => { if (!open) setSelection(null) }} onSave={saveSelection} /> : null}
+      item={selection.item} title={selection.index === null ? t("policy.dns.addServerTitle") : t("policy.dns.editServerTitle")}
+      onOpenChange={(open) => { if (!open) setSelection(null) }} onSave={saveSelection} /> : null}
     {selection?.kind === "rule" ? <DNSRuleDialog key={`${selection.index}:${JSON.stringify(selection.item)}`} open
-      item={selection.item} title={selectionTitle(selection)} serverTags={serverTags}
+      item={selection.item} title={selection.index === null ? t("policy.dns.addRuleTitle") : t("policy.dns.editRuleTitle", { index: selection.index + 1 })} serverTags={serverTags}
       onOpenChange={(open) => { if (!open) setSelection(null) }} onSave={saveSelection} /> : null}
   </div>
 }

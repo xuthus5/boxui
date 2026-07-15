@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -53,12 +54,13 @@ function requiredFieldsPresent(object: JsonObject): boolean {
 }
 
 function TypeSelect({ object, onChange }: { object: JsonObject; onChange: (item: JsonObject) => void }) {
+  const { t } = useTranslation()
   const current = String(object.type ?? "inline")
   const options = useMemo(() => optionsWithCurrent(current), [current])
   const items = useMemo(() => options.map((value) => ({ value, label: value })), [options])
-  return <FieldGroup><Field><FieldLabel htmlFor="route-rule-set-type">规则集类型</FieldLabel>
+  return <FieldGroup><Field><FieldLabel htmlFor="route-rule-set-type">{t("policy.route.ruleSetType")}</FieldLabel>
     <Select items={items} value={current} onValueChange={(value) => onChange(changeRuleSetType(object, String(value)))}>
-      <SelectTrigger id="route-rule-set-type" aria-label="规则集类型" className="w-full"><SelectValue /></SelectTrigger>
+      <SelectTrigger id="route-rule-set-type" aria-label={t("policy.route.ruleSetType")} className="w-full"><SelectValue /></SelectTrigger>
       <SelectContent><SelectGroup>{options.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectGroup></SelectContent>
     </Select>
   </Field></FieldGroup>
@@ -67,42 +69,48 @@ function TypeSelect({ object, onChange }: { object: JsonObject; onChange: (item:
 function RuleSetFields({ object, revision, onChange }: {
   object: JsonObject; revision: number; onChange: (item: JsonObject) => void
 }) {
+  const { t } = useTranslation()
   const type = String(object.type ?? "inline")
   const fields = type === "remote" ? remoteFields : type === "local" ? localFields : []
-  return <>
+  return <div className="flex flex-col gap-4">
     <PolicyFormFields fields={tagFields} object={object} namespace="policy.route" revision={revision} onChange={onChange} />
     <TypeSelect object={object} onChange={onChange} />
     <PolicyFormFields fields={formatFields} object={object} namespace="policy.route" revision={revision} onChange={onChange} />
     <PolicyFormFields fields={fields} object={object} namespace="policy.route" revision={revision} onChange={onChange} />
-    {type === "inline" ? <Alert><AlertTitle>Inline 规则集</AlertTitle><AlertDescription>复杂 inline 规则内容请在高级 JSON 中维护。</AlertDescription></Alert> : null}
-  </>
+    {type === "inline" ? <Alert><AlertTitle>{t("policy.route.inlineTitle")}</AlertTitle><AlertDescription>{t("policy.route.inlineDescription")}</AlertDescription></Alert> : null}
+  </div>
 }
 
 function AdvancedJSONField({ value, title, onChange }: {
   value: string; title: string; onChange: (value: string) => void
 }) {
-  return <FieldGroup><Field><FieldLabel className="sr-only">高级 JSON</FieldLabel>
-    <JsonEditor value={value} onChange={onChange} ariaLabel={`${title} JSON`} />
+  const { t } = useTranslation()
+  return <FieldGroup><Field><FieldLabel className="sr-only">{t("policy.route.advancedJSON")}</FieldLabel>
+    <JsonEditor value={value} onChange={onChange} ariaLabel={t("policy.route.advancedJSONLabel", { title })} />
   </Field></FieldGroup>
 }
 
 export function RouteRuleSetDialog({ open, item, title, onOpenChange, onSave }: RouteRuleSetDialogProps) {
+  const { t } = useTranslation()
   const [value, setValue] = useState(() => JSON.stringify(item, null, 2))
   const [revision, setRevision] = useState(0)
   const object = parseObject(value)
   const update = (next: JsonObject) => setValue(JSON.stringify(next, null, 2))
   const updateJSON = (next: string) => { setValue(next); setRevision((current) => current + 1) }
+  const requiredValid = Boolean(object && requiredFieldsPresent(object))
   return <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-3xl">
-      <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>按类型编辑规则集，完整对象可在高级 JSON 中维护。</DialogDescription></DialogHeader>
-      <div className="min-h-0 overflow-y-auto pr-1">
-        {object ? <Tabs defaultValue="basic"><TabsList><TabsTrigger value="basic">基础</TabsTrigger><TabsTrigger value="advanced">高级 JSON</TabsTrigger></TabsList>
+    <DialogContent className="max-h-[calc(100dvh-2rem)] min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-x-hidden sm:max-w-3xl">
+      <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{t("policy.route.ruleSetDialogDescription")}</DialogDescription></DialogHeader>
+      <div className="min-h-0 min-w-0 overflow-y-auto pr-1"><div className="flex min-w-0 flex-col gap-4">
+        {object && !requiredValid ? <Alert variant="destructive"><AlertTitle>{t("policy.route.requiredTitle")}</AlertTitle>
+          <AlertDescription>{t("policy.route.ruleSetRequiredDescription")}</AlertDescription></Alert> : null}
+        {object ? <Tabs defaultValue="basic" className="min-w-0"><TabsList activateOnFocus className="max-w-full overflow-x-auto"><TabsTrigger value="basic">{t("policy.route.ruleSetBasicTab")}</TabsTrigger><TabsTrigger value="advanced">{t("policy.route.advancedJSON")}</TabsTrigger></TabsList>
           <TabsContent value="basic" className="pt-4" keepMounted><RuleSetFields object={object} revision={revision} onChange={update} /></TabsContent>
           <TabsContent value="advanced" className="pt-4"><AdvancedJSONField value={value} title={title} onChange={updateJSON} /></TabsContent>
         </Tabs> : <AdvancedJSONField value={value} title={title} onChange={updateJSON} />}
-      </div>
-      <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
-        <Button disabled={!object || !requiredFieldsPresent(object)} onClick={() => { if (object) onSave(object) }}>保存</Button></DialogFooter>
+      </div></div>
+      <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>{t("policy.route.cancel")}</Button>
+        <Button disabled={!requiredValid} onClick={() => { if (object) onSave(object) }}>{t("policy.route.save")}</Button></DialogFooter>
     </DialogContent>
   </Dialog>
 }

@@ -60,7 +60,7 @@ describe("PolicyPage editor shell", () => {
     renderPolicy(() => null)
 
     await user.click(await screen.findByRole("tab", { name: "高级 JSON" }))
-    const editor = screen.getByRole("textbox", { name: "Policy JSON" })
+    const editor = screen.getByRole("textbox", { name: "流量策略 JSON" })
     await user.click(editor)
     await user.keyboard("{Control>}a{/Control}[BracketLeft][BracketRight]")
 
@@ -76,7 +76,7 @@ describe("PolicyPage editor shell", () => {
     ))
 
     await user.click(await screen.findByRole("tab", { name: "高级 JSON" }))
-    const editor = screen.getByRole("textbox", { name: "Policy JSON" })
+    const editor = screen.getByRole("textbox", { name: "流量策略 JSON" })
     await user.click(editor)
     await user.keyboard("{Control>}a{/Control}")
     await user.paste("{}")
@@ -115,7 +115,7 @@ describe("PolicyPage editor shell", () => {
     await user.click(screen.getByRole("button", { name: "标记 Headers 无效" }))
     expect(saveButton).toBeDisabled()
     await user.click(screen.getByRole("tab", { name: "高级 JSON" }))
-    const editor = screen.getByRole("textbox", { name: "Policy JSON" })
+    const editor = screen.getByRole("textbox", { name: "流量策略 JSON" })
     await user.click(editor)
     await user.keyboard("{Control>}a{/Control}")
     await user.paste("{}")

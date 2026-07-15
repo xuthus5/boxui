@@ -20,12 +20,26 @@ export function optionsWithCurrent(values: readonly string[], current: string): 
 
 export function useDNSDialogState(item: JsonObject) {
   const [value, setValue] = useState(() => JSON.stringify(item, null, 2))
+  const [object, setObject] = useState(item)
+  const [jsonValid, setJSONValid] = useState(true)
+  const [editorRevision, setEditorRevision] = useState(0)
   const [revision, setRevision] = useState(0)
   const [invalidFields, setInvalidFields] = useState(() => new Set<string>())
-  const object = parseObject(value)
-  const update = (next: JsonObject) => setValue(JSON.stringify(next, null, 2))
+  const update = (next: JsonObject) => {
+    setObject(next)
+    setValue(JSON.stringify(next, null, 2))
+    setJSONValid(true)
+    setEditorRevision((current) => current + 1)
+  }
   const updateJSON = (next: string) => {
     setValue(next)
+    const parsed = parseObject(next)
+    if (!parsed) {
+      setJSONValid(false)
+      return
+    }
+    setObject(parsed)
+    setJSONValid(true)
     setRevision((current) => current + 1)
     setInvalidFields(new Set())
   }
@@ -42,5 +56,5 @@ export function useDNSDialogState(item: JsonObject) {
     if (next !== undefined) updateValidity(field.path, next !== null)
     return next
   }
-  return { value, revision, invalidFields, object, update, updateJSON, updateValidity, transform }
+  return { value, revision, editorRevision, invalidFields, object, jsonValid, update, updateJSON, updateValidity, transform }
 }

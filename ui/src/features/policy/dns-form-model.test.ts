@@ -239,6 +239,10 @@ describe("DNS arrays and summaries", () => {
     expect(summarizeDNSServer({ type: "dhcp", tag: "lan", interface: "eth0" }))
       .toEqual({ type: "dhcp", detail: "eth0 · tag lan" })
     expect(summarizeDNSServer({ type: "local", tag: "local" })).toEqual({ type: "local", detail: "tag local" })
+    expect(summarizeDNSServer({ type: "hosts", tag: "hosts", path: ["/etc/hosts"], predefined: { router: "192.0.2.1" } }))
+      .toEqual({ type: "hosts", detail: "path /etc/hosts · predefined 1 · tag hosts" })
+    expect(summarizeDNSServer({ type: "fakeip", tag: "fake", inet4_range: "198.18.0.0/15", inet6_range: "fc00::/18" }))
+      .toEqual({ type: "fakeip", detail: "inet4 198.18.0.0/15 · inet6 fc00::/18 · tag fake" })
   })
 
   it("summarizes match values and DNS actions", () => {

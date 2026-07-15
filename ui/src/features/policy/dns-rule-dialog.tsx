@@ -79,7 +79,7 @@ function RouteServerField({ object, tags, onChange }: {
 }
 
 function FormFields({ state, fields }: { state: ReturnType<typeof useDNSDialogState>; fields: readonly PolicyFieldSpec[] }) {
-  return <PolicyFormFields fields={fields} object={state.object!} namespace="policy.dns" revision={state.revision}
+  return <PolicyFormFields fields={fields} object={state.object} namespace="policy.dns" revision={state.revision}
     onChange={state.update} onFieldValidityChange={state.updateValidity} transformField={state.transform} />
 }
 
@@ -93,45 +93,47 @@ function ActionFields({ state, serverTags }: { state: ReturnType<typeof useDNSDi
   </FieldGroup>
 }
 
-function AdvancedJSON({ value, title, onChange }: { value: string; title: string; onChange: (value: string) => void }) {
+function AdvancedJSON({ value, title, revision, onChange }: {
+  value: string; title: string; revision: number; onChange: (value: string) => void
+}) {
   return <FieldGroup><Field><FieldLabel className="sr-only">高级 JSON</FieldLabel>
-    <JsonEditor value={value} onChange={onChange} ariaLabel={`${title} JSON`} />
+    <JsonEditor key={revision} value={value} onChange={onChange} ariaLabel={`${title} JSON`} />
   </Field></FieldGroup>
 }
 
 function RuleTabs({ state, title, serverTags }: {
   state: ReturnType<typeof useDNSDialogState>; title: string; serverTags: readonly string[]
 }) {
-  const logical = state.object!.type === "logical"
+  const logical = state.object.type === "logical"
   return <Tabs defaultValue="basic" className="min-h-0"><TabsList className="h-auto w-full justify-start overflow-x-auto" variant="line">
     <TabsTrigger value="basic">基础与网络</TabsTrigger><TabsTrigger value="domain">域名与地址</TabsTrigger>
     <TabsTrigger value="process">端口与环境</TabsTrigger><TabsTrigger value="action">执行动作</TabsTrigger>
     <TabsTrigger value="advanced">高级 JSON</TabsTrigger></TabsList>
     <TabsContent value="basic" className="pt-4" keepMounted><FieldGroup className="gap-4">
-      <RuleTypeField object={state.object!} onChange={state.update} />
+      <RuleTypeField object={state.object} onChange={state.update} />
       <FormFields state={state} fields={logical ? logicalFields : [...basicFields, dnsRuleMatchFields.at(-1)!]} />
       {logical ? <Alert><AlertTitle>逻辑规则</AlertTitle><AlertDescription>逻辑子规则请在高级 JSON 中维护。</AlertDescription></Alert> : null}
     </FieldGroup></TabsContent>
     <TabsContent value="domain" className="pt-4" keepMounted><FormFields state={state} fields={logical ? [] : domainFields} /></TabsContent>
     <TabsContent value="process" className="pt-4" keepMounted><FormFields state={state} fields={logical ? [] : processFields} /></TabsContent>
     <TabsContent value="action" className="pt-4" keepMounted><ActionFields state={state} serverTags={serverTags} /></TabsContent>
-    <TabsContent value="advanced" className="pt-4" keepMounted><AdvancedJSON value={state.value} title={title} onChange={state.updateJSON} /></TabsContent>
+    <TabsContent value="advanced" className="pt-4" keepMounted><AdvancedJSON value={state.value} title={title}
+      revision={state.editorRevision} onChange={state.updateJSON} /></TabsContent>
   </Tabs>
 }
 
 export function DNSRuleDialog({ open, item, title, serverTags, onOpenChange, onSave }: DNSRuleDialogProps) {
   const state = useDNSDialogState(item)
-  const requiredValid = Boolean(state.object && requiredRuleValues(state.object) && requiredActionValue(state.object))
-  const canSave = Boolean(requiredValid && state.invalidFields.size === 0)
+  const requiredValid = requiredRuleValues(state.object) && requiredActionValue(state.object)
+  const canSave = Boolean(state.jsonValid && requiredValid && state.invalidFields.size === 0)
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-5xl">
     <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>常用匹配与 DNS 动作可视化编辑，复杂子规则保留在高级 JSON 中。</DialogDescription></DialogHeader>
     <div className="min-h-0 overflow-y-auto pr-1"><div className="flex flex-col gap-4">
-      {state.object && !requiredValid ? <Alert variant="destructive"><AlertTitle>缺少必填字段</AlertTitle>
+      {!requiredValid ? <Alert variant="destructive"><AlertTitle>缺少必填字段</AlertTitle>
         <AlertDescription>请补全逻辑规则或当前动作的必填值。</AlertDescription></Alert> : null}
-      {state.object ? <RuleTabs state={state} title={title} serverTags={serverTags} />
-        : <AdvancedJSON value={state.value} title={title} onChange={state.updateJSON} />}
+      <RuleTabs state={state} title={title} serverTags={serverTags} />
     </div></div>
     <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
-      <Button disabled={!canSave} onClick={() => { if (state.object) onSave(state.object) }}>保存</Button></DialogFooter>
+      <Button disabled={!canSave} onClick={() => { if (state.jsonValid) onSave(state.object) }}>保存</Button></DialogFooter>
   </DialogContent></Dialog>
 }

@@ -216,12 +216,32 @@ function stringValue(value: unknown): string {
   return typeof value === "string" ? value : ""
 }
 
+function stringListValue(value: unknown): string {
+  if (typeof value === "string") return value
+  if (!Array.isArray(value)) return ""
+  return value.filter((item): item is string => typeof item === "string").join(", ")
+}
+
+function serverTypeDetails(server: JsonObject, type: string): string[] {
+  if (type === "hosts") {
+    const path = stringListValue(server.path)
+    const predefined = isJsonObject(server.predefined) ? Object.keys(server.predefined).length : 0
+    return [path ? `path ${path}` : "", predefined ? `predefined ${predefined}` : ""]
+  }
+  if (type === "fakeip") {
+    const inet4 = stringValue(server.inet4_range)
+    const inet6 = stringValue(server.inet6_range)
+    return [inet4 ? `inet4 ${inet4}` : "", inet6 ? `inet6 ${inet6}` : ""]
+  }
+  return []
+}
+
 export function summarizeDNSServer(server: JsonObject): { type: string; detail: string } {
   const type = inferDNSServerType(server)
   const host = stringValue(server.server)
   const port = typeof server.server_port === "number" && Number.isFinite(server.server_port) ? `:${server.server_port}` : ""
   const primary = type === "legacy" ? stringValue(server.address) : host ? `${host}${port}` : stringValue(server.interface)
-  const details = [primary]
+  const details = [primary, ...serverTypeDetails(server, type)]
   if (stringValue(server.tag)) details.push(`tag ${server.tag}`)
   if (stringValue(server.detour)) details.push(`detour ${server.detour}`)
   if (stringValue(server.strategy)) details.push(`strategy ${server.strategy}`)

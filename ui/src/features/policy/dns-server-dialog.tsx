@@ -45,7 +45,6 @@ function requiredServerValues(object: JsonObject): boolean {
   if (typeof object.tag !== "string" || !object.tag.trim()) return false
   if (type === "legacy") return typeof object.address === "string" && Boolean(object.address.trim())
   if (remoteTypes.has(type)) return typeof object.server === "string" && Boolean(object.server.trim())
-  if (type === "dhcp") return typeof object.interface === "string" && Boolean(object.interface.trim())
   if (type === "fakeip") return [object.inet4_range, object.inet6_range].some((value) => typeof value === "string" && value.trim())
   return true
 }
@@ -78,14 +77,16 @@ function ServerFields(props: ServerFieldsProps) {
     onChange={props.onChange} onFieldValidityChange={props.onValidity} transformField={props.transform} />
 }
 
-function AdvancedJSON({ value, title, onChange }: { value: string; title: string; onChange: (value: string) => void }) {
+function AdvancedJSON({ value, title, revision, onChange }: {
+  value: string; title: string; revision: number; onChange: (value: string) => void
+}) {
   return <FieldGroup><Field><FieldLabel className="sr-only">高级 JSON</FieldLabel>
-    <JsonEditor value={value} onChange={onChange} ariaLabel={`${title} JSON`} />
+    <JsonEditor key={revision} value={value} onChange={onChange} ariaLabel={`${title} JSON`} />
   </Field></FieldGroup>
 }
 
 function ServerTabs({ state, title }: { state: ReturnType<typeof useDNSDialogState>; title: string }) {
-  const object = state.object!
+  const object = state.object
   const type = inferDNSServerType(object)
   const fieldProps = { object, type, revision: state.revision, onChange: state.update,
     onValidity: state.updateValidity, transform: state.transform }
@@ -102,23 +103,23 @@ function ServerTabs({ state, title }: { state: ReturnType<typeof useDNSDialogSta
     <TabsContent value="dialer" className="pt-4" keepMounted><ServerFields {...fieldProps} section="dialer" /></TabsContent>
     <TabsContent value="tls" className="pt-4" keepMounted><ServerFields {...fieldProps} section="tls" /></TabsContent>
     <TabsContent value="special" className="pt-4" keepMounted><ServerFields {...fieldProps} section="special" /></TabsContent>
-    <TabsContent value="advanced" className="pt-4" keepMounted><AdvancedJSON value={state.value} title={title} onChange={state.updateJSON} /></TabsContent>
+    <TabsContent value="advanced" className="pt-4" keepMounted><AdvancedJSON value={state.value} title={title}
+      revision={state.editorRevision} onChange={state.updateJSON} /></TabsContent>
   </Tabs>
 }
 
 export function DNSServerDialog({ open, item, title, onOpenChange, onSave }: DNSServerDialogProps) {
   const state = useDNSDialogState(item)
-  const requiredValid = Boolean(state.object && requiredServerValues(state.object))
-  const canSave = Boolean(requiredValid && state.invalidFields.size === 0)
+  const requiredValid = requiredServerValues(state.object)
+  const canSave = Boolean(state.jsonValid && requiredValid && state.invalidFields.size === 0)
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-5xl">
     <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>常用服务器字段可视化编辑，未知字段保留在高级 JSON 中。</DialogDescription></DialogHeader>
     <div className="min-h-0 overflow-y-auto pr-1"><div className="flex flex-col gap-4">
-      {state.object && !requiredValid ? <Alert variant="destructive"><AlertTitle>缺少必填字段</AlertTitle>
+      {!requiredValid ? <Alert variant="destructive"><AlertTitle>缺少必填字段</AlertTitle>
         <AlertDescription>请填写当前服务器类型所需的 Tag 和地址信息。</AlertDescription></Alert> : null}
-      {state.object ? <ServerTabs state={state} title={title} />
-        : <AdvancedJSON value={state.value} title={title} onChange={state.updateJSON} />}
+      <ServerTabs state={state} title={title} />
     </div></div>
     <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
-      <Button disabled={!canSave} onClick={() => { if (state.object) onSave(state.object) }}>保存</Button></DialogFooter>
+      <Button disabled={!canSave} onClick={() => { if (state.jsonValid) onSave(state.object) }}>保存</Button></DialogFooter>
   </DialogContent></Dialog>
 }

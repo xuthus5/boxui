@@ -51,8 +51,8 @@ export const dnsServerFields: Record<string, readonly PolicyFieldSpec[]> = {
   tcp: remoteFields,
   tls: [...remoteFields, ...tlsFields],
   quic: [...remoteFields, ...tlsFields],
-  https: [...remoteFields, ...tlsFields, { path: "path", label: "path" }, { path: "method", label: "method" }, { path: "headers", label: "headers", kind: "json-object" }],
-  h3: [...remoteFields, ...tlsFields, { path: "path", label: "path" }, { path: "method", label: "method" }, { path: "headers", label: "headers", kind: "json-object" }],
+  https: [...remoteFields, ...tlsFields, { path: "path", label: "httpPath" }, { path: "method", label: "method" }, { path: "headers", label: "headers", kind: "json-object" }],
+  h3: [...remoteFields, ...tlsFields, { path: "path", label: "httpPath" }, { path: "method", label: "method" }, { path: "headers", label: "headers", kind: "json-object" }],
   dhcp: [...dialerFields, { path: "prefer_go", label: "preferGo", kind: "boolean" }, { path: "interface", label: "interface" }],
   fakeip: [{ path: "inet4_range", label: "fakeIPIPv4Range" }, { path: "inet6_range", label: "fakeIPIPv6Range" }],
 }

@@ -138,7 +138,6 @@ describe("DNS server dialog", () => {
   it.each([
     [{ tag: "legacy" }, "旧式地址", "local"],
     [{ type: "udp", tag: "remote" }, "服务器地址", "1.1.1.1"],
-    [{ type: "dhcp", tag: "lan" }, "网络接口", "eth0"],
     [{ type: "fakeip", tag: "fake" }, "FakeIP IPv4 范围", "198.18.0.0/15"],
   ] as const)("requires type-specific server values for %j", async (item, label, value) => {
     renderApp(<DNSServerDialog open title="新增 DNS 服务器" item={item} onOpenChange={vi.fn()} onSave={vi.fn()} />)
@@ -149,6 +148,18 @@ describe("DNS server dialog", () => {
     }
     fireEvent.change(screen.getByLabelText(label), { target: { value } })
     expect(screen.getByRole("button", { name: "保存" })).toBeEnabled()
+  })
+
+  it("keeps the DHCP interface optional while saving it when provided", async () => {
+    const onSave = vi.fn()
+    renderApp(<DNSServerDialog open title="新增 DNS 服务器" item={{ type: "dhcp", tag: "lan" }}
+      onOpenChange={vi.fn()} onSave={onSave} />)
+    expect(screen.getByRole("button", { name: "保存" })).toBeEnabled()
+    await userEvent.click(screen.getByRole("tab", { name: "类型专属" }))
+    expect(screen.getByLabelText("网络接口")).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText("网络接口"), { target: { value: "eth0" } })
+    await userEvent.click(screen.getByRole("button", { name: "保存" }))
+    expect(onSave).toHaveBeenCalledWith({ type: "dhcp", tag: "lan", interface: "eth0" })
   })
 
   it("keeps unknown types in Advanced JSON", async () => {

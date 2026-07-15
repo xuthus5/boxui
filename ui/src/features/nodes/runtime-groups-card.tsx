@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
+import { useId, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { api } from "@/lib/api/endpoints"
 import type { OutboundGroup } from "@/lib/api/types"
 
@@ -19,9 +19,16 @@ function SelectorControl({ group }: { group: OutboundGroup }) {
   })
   const items = group.all.map((tag) => ({ label: tag, value: tag }))
   return <Select items={items} value={group.now} onValueChange={(value) => mutation.mutate(String(value))}>
-    <SelectTrigger aria-label={group.tag}><SelectValue /></SelectTrigger>
+    <SelectTrigger aria-label={group.tag} className="w-full"><SelectValue /></SelectTrigger>
     <SelectContent><SelectGroup>{items.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectGroup></SelectContent>
   </Select>
+}
+
+function GroupCard({ group }: { group: OutboundGroup }) {
+  const { t } = useTranslation()
+  return <Card size="sm"><CardHeader><CardTitle>{group.tag}</CardTitle><CardDescription>{t("nodes.current")}: {group.now}</CardDescription><CardAction><Badge variant="outline">{group.type}</Badge></CardAction></CardHeader>
+    <CardContent>{group.type === "selector" ? <SelectorControl group={group} /> : <URLTestControl group={group} />}</CardContent>
+  </Card>
 }
 
 function URLTestControl({ group }: { group: OutboundGroup }) {
@@ -35,12 +42,12 @@ function URLTestControl({ group }: { group: OutboundGroup }) {
 
 export function RuntimeGroupsCard() {
   const { t } = useTranslation()
+  const titleId = useId()
   const query = useQuery({ queryKey: ["nodes", "groups"], queryFn: api.nodes.groups })
   const groups = query.data?.groups ?? []
   if (!groups.length) return null
-  return <Card><CardHeader><CardTitle>{t("nodes.runtimeGroups")}</CardTitle><CardDescription>{t("nodes.runtimeGroupsDescription")}</CardDescription></CardHeader><CardContent>
-    <Table><TableHeader><TableRow><TableHead>Tag</TableHead><TableHead>{t("common.type")}</TableHead><TableHead>{t("nodes.current")}</TableHead><TableHead>{t("common.actions")}</TableHead></TableRow></TableHeader>
-      <TableBody>{groups.map((group) => <TableRow key={group.tag}><TableCell>{group.tag}</TableCell><TableCell>{group.type}</TableCell><TableCell>{group.now}</TableCell><TableCell>{group.type === "selector" ? <SelectorControl group={group} /> : <URLTestControl group={group} />}</TableCell></TableRow>)}</TableBody>
-    </Table>
-  </CardContent></Card>
+  return <section aria-labelledby={titleId} className="flex flex-col gap-3">
+    <div><h2 id={titleId} className="text-lg font-medium">{t("nodes.runtimeGroups")}</h2><p className="text-sm text-muted-foreground">{t("nodes.runtimeGroupsDescription")}</p></div>
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{groups.map((group) => <GroupCard key={group.tag} group={group} />)}</div>
+  </section>
 }

@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
@@ -8,14 +8,14 @@ import { renderApp } from "@/test/render"
 
 afterEach(() => { vi.unstubAllGlobals(); sessionStore.clear() })
 
-function setup(handler: (path: string, init?: RequestInit) => unknown) {
+function setup(handler: (path: string, init?: RequestInit) => unknown, route = "/nodes") {
   sessionStore.set({ token: "token", expiresAt: "2099-01-01T00:00:00Z" })
   const fetchMock = vi.fn((input: string | URL | Request, init?: RequestInit) => {
     const path = typeof input === "string" ? input : input.toString()
     return Promise.resolve(new Response(JSON.stringify(handler(path, init))))
   })
   vi.stubGlobal("fetch", fetchMock)
-  renderApp(<App />, "/nodes")
+  renderApp(<App />, route)
   return { fetchMock, user: userEvent.setup() }
 }
 
@@ -24,11 +24,13 @@ describe("node management workflows", () => {
     const { fetchMock, user } = setup((path) => {
       if (path === "/api/nodes/") return [{ tag: "hk-01", type: "vless", server: "example.com", port: 443, source: "import" }]
       if (path === "/api/nodes/hk-01") return { tag: "hk-01", type: "vless", server: "example.com", port: 443, raw: { uuid: "secret", tls: { enabled: true } } }
+      if (path === "/api/subscriptions/") return []
       if (path === "/api/nodes/groups") return { groups: [] }
       return {}
-    })
+    }, "/subscriptions")
 
-    await user.click(await screen.findByRole("button", { name: "编辑" }))
+    const card = await screen.findByRole("article", { name: "hk-01" })
+    await user.click(within(card).getByRole("button", { name: "编辑" }))
     await user.clear(await screen.findByLabelText("服务器"))
     await user.type(screen.getByLabelText("服务器"), "new.example.com")
     await user.click(screen.getByRole("button", { name: "保存" }))
@@ -46,6 +48,10 @@ describe("node management workflows", () => {
         }),
       }),
     ))
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/nodes/sync-config",
+      expect.objectContaining({ method: "POST" }),
+    )
   })
 
   it("switches test type and displays persisted results", async () => {
@@ -57,9 +63,10 @@ describe("node management workflows", () => {
       return {}
     })
 
-    expect(await screen.findByText("18 ms")).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "TCP" }))
-    await user.click(screen.getByRole("button", { name: "测速" }))
+    expect(await screen.findAllByText("18 ms")).toHaveLength(2)
+    const all = screen.getByRole("region", { name: "所有节点" })
+    await user.click(within(all).getByRole("button", { name: "测速" }))
+    await user.click(within(all).getByRole("button", { name: "TCP" }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       "/api/nodes/test",
@@ -82,7 +89,7 @@ describe("node runtime groups", () => {
 
     expect(await screen.findByText("proxy")).toBeInTheDocument()
     await user.click(screen.getByRole("combobox", { name: "proxy" }))
-    await user.click(screen.getByRole("option", { name: "b" }))
+    await user.click(await screen.findByRole("option", { name: "b" }))
     await user.click(screen.getByRole("button", { name: "运行 auto URLTest" }))
 
     expect(await screen.findByText("a: 12 ms")).toBeInTheDocument()

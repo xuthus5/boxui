@@ -30,7 +30,7 @@ function NodeEditorForm({ node, originalTag, onSaved }: { node: Outbound; origin
   const [config, setConfig] = useState(() => JSON.stringify(node.raw ?? {}, null, 2))
   const parsed = parseJSON(config)
   const save = useMutation({
-    mutationFn: () => api.nodes.update(originalTag, { tag, type, server, port: Number(port), config: parsed! }),
+    mutationFn: () => api.nodes.update(originalTag, { tag, type, server, port: Number(port), config: parsed! }).then(() => api.nodes.sync()),
     onSuccess: () => { toast.success(t("nodes.updated")); onSaved() },
     onError: (error: Error) => toast.error(error.message),
   })
@@ -49,7 +49,7 @@ function NodeEditorForm({ node, originalTag, onSaved }: { node: Outbound; origin
 export function NodeEditorDialog({ tag, onClose, onSaved }: Props) {
   const { t } = useTranslation()
   const query = useQuery({ queryKey: ["nodes", tag], queryFn: () => api.nodes.get(tag) })
-  return <Dialog open onOpenChange={(open) => { if (!open) onClose() }}><DialogContent className="max-w-3xl">
+  return <Dialog open onOpenChange={(open) => { if (!open) onClose() }}><DialogContent className="max-h-[calc(100dvh-2rem)] max-w-3xl overflow-y-auto sm:max-w-3xl">
     <DialogHeader><DialogTitle>{t("nodes.edit")}</DialogTitle><DialogDescription>{t("nodes.editDescription")}</DialogDescription></DialogHeader>
     {query.isLoading ? <Skeleton className="h-64 w-full" /> : null}
     {query.error ? <Alert variant="destructive"><AlertTitle>{t("common.loadFailed")}</AlertTitle><AlertDescription>{query.error.message}</AlertDescription></Alert> : null}

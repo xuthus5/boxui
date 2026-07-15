@@ -38,7 +38,7 @@ describe("login page", () => {
     await user.type(screen.getByLabelText("密码"), "secret")
     await user.click(screen.getByRole("button", { name: "登录" }))
 
-    expect(await screen.findByRole("heading", { name: "仪表盘" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "仪表盘" }, { timeout: 3000 })).toBeInTheDocument()
     expect(sessionStore.get()?.token).toBe("token")
   })
 

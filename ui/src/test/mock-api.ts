@@ -27,7 +27,7 @@ const payloads: Record<string, unknown> = {
   "/api/stats/traffic/history": { points: [{ upload_bytes: 10, download_bytes: 20, timestamp: "2026-01-01T00:00:00Z" }] },
   "/api/runtime/memory": { alloc: 1024, total: 2048, sys: 4096, num_gc: 2, heap_inuse: 512, stack_inuse: 128 },
   "/api/runtime/version": { version: "dev", kernel_version: "1.13.14" },
-  "/api/nodes/": [{ tag: "hk-01", type: "vless", server: "example.com", port: 443, raw: {} }],
+  "/api/nodes/": [{ tag: "hk-01", type: "vless", server: "example.com", port: 443, source: "import", raw: {} }],
   "/api/nodes/test": { tag: "hk-01", test_type: "http", success: true, latency_ms: 25 },
   "/api/import/link": { tag: "new-node", type: "vless", server: "new.example.com", port: 443, config: {} },
   "/api/subscriptions/": [{ id: "sub-1", name: "主订阅", url: "https://example.com/sub", interval_min: 60, last_updated: "2026-01-01T00:00:00Z", outbounds: [] }],

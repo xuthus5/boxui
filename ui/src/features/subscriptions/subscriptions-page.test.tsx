@@ -14,9 +14,10 @@ describe("SubscriptionsPage", () => {
       id: "sub-1", name: "主订阅", url: "https://example.com/sub", interval_min: 60,
       last_updated: "2026-01-01T00:00:00Z", outbounds: [],
     }]))))
-    renderApp(<App />, "/subscriptions")
+    const { container } = renderApp(<App />, "/subscriptions")
 
     expect(await screen.findByText("主订阅")).toBeInTheDocument()
+    expect(container.querySelector("[data-slot=card] [data-slot=card]")).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "新增订阅" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "刷新全部" })).toBeInTheDocument()
   })

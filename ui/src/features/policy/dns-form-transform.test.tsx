@@ -69,11 +69,11 @@ describe("PolicyFormFields DNS transform integration", () => {
       transformField={transformDNSField}
     />)
 
-    fireEvent.change(screen.getByLabelText("policy.dns.queryType"), { target: { value: "28, AAAA" } })
+    fireEvent.change(screen.getByLabelText("查询类型"), { target: { value: "28, AAAA" } })
     expect(onChange).toHaveBeenLastCalledWith({ ...object, query_type: [28, "AAAA"] })
-    fireEvent.change(screen.getByLabelText("policy.dns.rcode"), { target: { value: "3" } })
+    fireEvent.change(screen.getByLabelText("响应码"), { target: { value: "3" } })
     expect(onChange).toHaveBeenLastCalledWith({ ...object, rcode: 3 })
-    fireEvent.change(screen.getByLabelText("policy.dns.routingMark"), { target: { value: "0x20" } })
+    fireEvent.change(screen.getByLabelText("路由标记"), { target: { value: "0x20" } })
     expect(onChange).toHaveBeenLastCalledWith({ ...object, routing_mark: "0x20" })
     cleanup()
   })

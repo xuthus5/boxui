@@ -1,0 +1,137 @@
+import { useMemo } from "react"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { JsonEditor } from "@/features/config/json-editor"
+import { optionsWithCurrent, useDNSDialogState } from "@/features/policy/dns-dialog-state"
+import { PolicyFormFields } from "@/features/policy/policy-form-fields"
+import { changeDNSAction, changeDNSRuleType, dnsActionFields, dnsActions, dnsRuleMatchFields } from "@/features/policy/dns-form-model"
+import { setPolicyPath, type JsonObject, type PolicyFieldSpec } from "@/features/policy/policy-form-model"
+
+export interface DNSRuleDialogProps {
+  open: boolean
+  item: JsonObject
+  title: string
+  serverTags: readonly string[]
+  onOpenChange: (open: boolean) => void
+  onSave: (item: JsonObject) => void
+}
+
+const fieldsAt = (paths: readonly string[]) => dnsRuleMatchFields.filter((field) => paths.includes(field.path))
+const basicFields = fieldsAt(["inbound", "ip_version", "query_type", "network", "auth_user", "protocol"])
+const domainFields = fieldsAt(["domain", "domain_suffix", "domain_keyword", "domain_regex", "source_ip_cidr", "source_ip_is_private", "ip_cidr", "ip_is_private"])
+const processFields = fieldsAt(["source_port", "source_port_range", "port", "port_range", "process_name", "process_path", "process_path_regex", "package_name", "user", "user_id", "outbound", "clash_mode", "rule_set", "rule_set_ip_cidr_match_source", "network_type", "network_is_expensive", "network_is_constrained", "wifi_ssid", "wifi_bssid"])
+const logicalFields = [
+  { path: "mode", label: "logicalMode", kind: "select", options: ["and", "or"], required: true },
+  { path: "invert", label: "invert", kind: "boolean" },
+] as const satisfies readonly PolicyFieldSpec[]
+
+function requiredRuleValues(object: JsonObject): boolean {
+  if (object.type !== "logical") return true
+  return typeof object.mode === "string" && Boolean(object.mode) && Array.isArray(object.rules)
+}
+
+function requiredActionValue(object: JsonObject): boolean {
+  const action = String(object.action ?? "route")
+  if (action === "route") return typeof object.server === "string" && Boolean(object.server.trim())
+  if (action === "predefined") return typeof object.rcode === "string" || typeof object.rcode === "number"
+  return true
+}
+
+function RuleTypeField({ object, onChange }: { object: JsonObject; onChange: (item: JsonObject) => void }) {
+  const current = String(object.type ?? "default")
+  const options = useMemo(() => optionsWithCurrent(["default", "logical"], current), [current])
+  const items = useMemo(() => options.map((value) => ({ value, label: value })), [options])
+  return <Field><FieldLabel htmlFor="dns-rule-type">规则类型</FieldLabel>
+    <Select items={items} value={current} onValueChange={(value) => onChange(changeDNSRuleType(object, String(value)))}>
+      <SelectTrigger id="dns-rule-type" aria-label="规则类型" className="w-full"><SelectValue /></SelectTrigger>
+      <SelectContent><SelectGroup>{options.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectGroup></SelectContent>
+    </Select></Field>
+}
+
+function ActionTypeField({ object, onChange }: { object: JsonObject; onChange: (item: JsonObject) => void }) {
+  const current = String(object.action ?? "route")
+  const options = useMemo(() => optionsWithCurrent(dnsActions, current), [current])
+  const items = useMemo(() => options.map((value) => ({ value, label: value })), [options])
+  return <Field><FieldLabel htmlFor="dns-rule-action">执行动作</FieldLabel>
+    <Select items={items} value={current} onValueChange={(value) => onChange(changeDNSAction(object, String(value)))}>
+      <SelectTrigger id="dns-rule-action" aria-label="执行动作" className="w-full"><SelectValue /></SelectTrigger>
+      <SelectContent><SelectGroup>{options.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectGroup></SelectContent>
+    </Select></Field>
+}
+
+function RouteServerField({ object, tags, onChange }: {
+  object: JsonObject; tags: readonly string[]; onChange: (item: JsonObject) => void
+}) {
+  const current = typeof object.server === "string" ? object.server : ""
+  const options = useMemo(() => optionsWithCurrent(tags, current), [current, tags])
+  const items = useMemo(() => [{ value: null, label: "未设置" }, ...options.map((value) => ({ value, label: value }))], [options])
+  return <Field data-invalid={!current}><FieldLabel htmlFor="dns-rule-server">目标 DNS 服务器</FieldLabel>
+    <Select items={items} value={current || null} onValueChange={(value) => onChange(setPolicyPath(object, "server", value ? String(value) : undefined))}>
+      <SelectTrigger id="dns-rule-server" aria-label="目标 DNS 服务器" aria-invalid={!current} className="w-full"><SelectValue /></SelectTrigger>
+      <SelectContent><SelectGroup><SelectItem value={null}>未设置</SelectItem>
+        {options.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectGroup></SelectContent>
+    </Select></Field>
+}
+
+function FormFields({ state, fields }: { state: ReturnType<typeof useDNSDialogState>; fields: readonly PolicyFieldSpec[] }) {
+  return <PolicyFormFields fields={fields} object={state.object!} namespace="policy.dns" revision={state.revision}
+    onChange={state.update} onFieldValidityChange={state.updateValidity} transformField={state.transform} />
+}
+
+function ActionFields({ state, serverTags }: { state: ReturnType<typeof useDNSDialogState>; serverTags: readonly string[] }) {
+  const object = state.object!
+  const action = String(object.action ?? "route")
+  const fields = action === "route" ? dnsActionFields.route.filter((field) => field.path !== "server") : dnsActionFields[action] ?? []
+  return <FieldGroup className="gap-4"><ActionTypeField object={object} onChange={state.update} />
+    {action === "route" ? <RouteServerField object={object} tags={serverTags} onChange={state.update} /> : null}
+    <FormFields state={state} fields={fields} />
+  </FieldGroup>
+}
+
+function AdvancedJSON({ value, title, onChange }: { value: string; title: string; onChange: (value: string) => void }) {
+  return <FieldGroup><Field><FieldLabel className="sr-only">高级 JSON</FieldLabel>
+    <JsonEditor value={value} onChange={onChange} ariaLabel={`${title} JSON`} />
+  </Field></FieldGroup>
+}
+
+function RuleTabs({ state, title, serverTags }: {
+  state: ReturnType<typeof useDNSDialogState>; title: string; serverTags: readonly string[]
+}) {
+  const logical = state.object!.type === "logical"
+  return <Tabs defaultValue="basic" className="min-h-0"><TabsList className="h-auto w-full justify-start overflow-x-auto" variant="line">
+    <TabsTrigger value="basic">基础与网络</TabsTrigger><TabsTrigger value="domain">域名与地址</TabsTrigger>
+    <TabsTrigger value="process">端口与环境</TabsTrigger><TabsTrigger value="action">执行动作</TabsTrigger>
+    <TabsTrigger value="advanced">高级 JSON</TabsTrigger></TabsList>
+    <TabsContent value="basic" className="pt-4" keepMounted><FieldGroup className="gap-4">
+      <RuleTypeField object={state.object!} onChange={state.update} />
+      <FormFields state={state} fields={logical ? logicalFields : [...basicFields, dnsRuleMatchFields.at(-1)!]} />
+      {logical ? <Alert><AlertTitle>逻辑规则</AlertTitle><AlertDescription>逻辑子规则请在高级 JSON 中维护。</AlertDescription></Alert> : null}
+    </FieldGroup></TabsContent>
+    <TabsContent value="domain" className="pt-4" keepMounted><FormFields state={state} fields={logical ? [] : domainFields} /></TabsContent>
+    <TabsContent value="process" className="pt-4" keepMounted><FormFields state={state} fields={logical ? [] : processFields} /></TabsContent>
+    <TabsContent value="action" className="pt-4" keepMounted><ActionFields state={state} serverTags={serverTags} /></TabsContent>
+    <TabsContent value="advanced" className="pt-4" keepMounted><AdvancedJSON value={state.value} title={title} onChange={state.updateJSON} /></TabsContent>
+  </Tabs>
+}
+
+export function DNSRuleDialog({ open, item, title, serverTags, onOpenChange, onSave }: DNSRuleDialogProps) {
+  const state = useDNSDialogState(item)
+  const requiredValid = Boolean(state.object && requiredRuleValues(state.object) && requiredActionValue(state.object))
+  const canSave = Boolean(requiredValid && state.invalidFields.size === 0)
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-5xl">
+    <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>常用匹配与 DNS 动作可视化编辑，复杂子规则保留在高级 JSON 中。</DialogDescription></DialogHeader>
+    <div className="min-h-0 overflow-y-auto pr-1"><div className="flex flex-col gap-4">
+      {state.object && !requiredValid ? <Alert variant="destructive"><AlertTitle>缺少必填字段</AlertTitle>
+        <AlertDescription>请补全逻辑规则或当前动作的必填值。</AlertDescription></Alert> : null}
+      {state.object ? <RuleTabs state={state} title={title} serverTags={serverTags} />
+        : <AdvancedJSON value={state.value} title={title} onChange={state.updateJSON} />}
+    </div></div>
+    <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
+      <Button disabled={!canSave} onClick={() => { if (state.object) onSave(state.object) }}>保存</Button></DialogFooter>
+  </DialogContent></Dialog>
+}

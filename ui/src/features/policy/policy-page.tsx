@@ -32,7 +32,7 @@ interface PolicyPageProps {
   title: string
   installLabel: string
   install: () => Promise<APIEnvelope<JsonValue>>
-  renderVisual?: (props: PolicyVisualEditorProps) => React.ReactNode
+  renderVisual: (props: PolicyVisualEditorProps) => React.ReactNode
 }
 
 interface PolicyEditorProps {
@@ -61,10 +61,6 @@ function parsePolicyObject(value: string): JsonObject | null {
   } catch {
     return null
   }
-}
-
-function EmptyVisualEditor() {
-  return null
 }
 
 function usePolicyEditorState(initialSection: JsonValue) {
@@ -165,7 +161,7 @@ export function PolicyPage({
   title,
   installLabel,
   install,
-  renderVisual = EmptyVisualEditor,
+  renderVisual,
 }: PolicyPageProps) {
   const { t } = useTranslation()
   const query = useConfigQuery()

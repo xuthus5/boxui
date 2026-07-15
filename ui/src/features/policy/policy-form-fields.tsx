@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { defaultPolicyFieldUpdate } from "@/features/policy/policy-field-update"
 import {
   getPolicyPath,
   isJsonObject,
@@ -21,6 +22,7 @@ import {
   type PolicyFieldSpec,
   type PolicyFieldTransform,
 } from "@/features/policy/policy-form-model"
+import { TransformedPolicyField } from "@/features/policy/policy-transformed-field"
 import type { JsonValue } from "@/lib/api/types"
 
 export interface PolicyFormFieldsProps {
@@ -73,14 +75,6 @@ function textValue(value: JsonValue | undefined): string {
   if (Array.isArray(value)) return value.map(String).join("\n")
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value)
   return ""
-}
-
-function parseList(raw: string): string[] | undefined {
-  const values = raw
-    .split(/[\n,]/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-  return values.length > 0 ? values : undefined
 }
 
 function useFieldValidity(path: string, valid: boolean, onChange?: ValidityCallback, resetKey?: string) {
@@ -242,22 +236,6 @@ function StructuredField(props: StructuredFieldProps) {
   )
 }
 
-function defaultUpdate(object: JsonObject, field: PolicyFieldSpec, raw: string): JsonObject | null {
-  if (field.kind === "list") return setPolicyPath(object, field.path, parseList(raw))
-  if (field.kind === "number-list") {
-    const values = parseList(raw)
-    if (!values) return setPolicyPath(object, field.path, undefined)
-    const numbers = values.map(Number)
-    return numbers.every(Number.isFinite) ? setPolicyPath(object, field.path, numbers) : null
-  }
-  if (field.kind === "number") {
-    if (raw === "") return setPolicyPath(object, field.path, undefined)
-    const number = Number(raw)
-    return Number.isFinite(number) ? setPolicyPath(object, field.path, number) : null
-  }
-  return setPolicyPath(object, field.path, raw || undefined)
-}
-
 function PolicyField(props: Omit<PolicyFormFieldsProps, "fields"> & { field: PolicyFieldSpec }) {
   const { field, object, namespace, revision, onChange, onFieldValidityChange, transformField } = props
   const { t } = useTranslation()
@@ -265,7 +243,7 @@ function PolicyField(props: Omit<PolicyFormFieldsProps, "fields"> & { field: Pol
   const label = t(`${namespace}.${field.label}`)
   const update = (raw: string) => {
     const transformed = transformField?.(object, field, raw)
-    const next = transformed === undefined ? defaultUpdate(object, field, raw) : transformed
+    const next = transformed === undefined ? defaultPolicyFieldUpdate(object, field, raw) : transformed
     if (next) onChange(next)
   }
   if (field.kind === "boolean") {
@@ -281,6 +259,9 @@ function PolicyField(props: Omit<PolicyFormFieldsProps, "fields"> & { field: Pol
       value={value} array={field.kind === "json-array"}
       onChange={(next) => onChange(setPolicyPath(object, field.path, next))}
       onFieldValidityChange={onFieldValidityChange} />
+  }
+  if (transformField) {
+    return <TransformedPolicyField {...props} label={label} value={value} transformField={transformField} />
   }
   return <TextField field={field} label={label} value={textValue(value)} onChange={update} />
 }

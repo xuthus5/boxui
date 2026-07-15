@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
 import { PolicyFormFields } from "@/features/policy/policy-form-fields"
+import { i18n } from "@/i18n"
 import {
   cloneJsonObject,
   getPolicyPath,
@@ -70,7 +71,7 @@ describe("policy form JSON helpers", () => {
 })
 
 const namespace = "policy.dns"
-const label = (name: string) => `${namespace}.${name}`
+const label = (name: string) => i18n.t(`${namespace}.${name}`)
 
 function renderFields(fields: readonly PolicyFieldSpec[], object: JsonObject = {}) {
   const onChange = vi.fn()
@@ -191,16 +192,22 @@ describe("policy form field conversions", () => {
 
   it("uses custom transforms and falls back only when they return undefined", () => {
     const onChange = vi.fn()
+    const onValidity = vi.fn()
     const transform = vi.fn((_object, _field, raw: string) => raw === "ignore" ? null : raw === "fallback" ? undefined : { transformed: raw })
-    renderApp(<PolicyFormFields fields={[{ path: "tag", label: "tag" }]} object={{}} namespace={namespace} onChange={onChange} transformField={transform} />)
+    renderApp(<PolicyFormFields fields={[{ path: "tag", label: "tag" }]} object={{}} namespace={namespace}
+      onChange={onChange} onFieldValidityChange={onValidity} transformField={transform} />)
     const input = screen.getByLabelText(label("tag"))
 
     fireEvent.change(input, { target: { value: "custom" } })
     expect(onChange).toHaveBeenLastCalledWith({ transformed: "custom" })
     fireEvent.change(input, { target: { value: "ignore" } })
     expect(onChange).toHaveBeenCalledTimes(1)
+    expect(input).toHaveAttribute("aria-invalid", "true")
+    expect(onValidity).toHaveBeenLastCalledWith("tag", false)
     fireEvent.change(input, { target: { value: "fallback" } })
     expect(onChange).toHaveBeenLastCalledWith({ tag: "fallback" })
+    expect(input).toHaveAttribute("aria-invalid", "false")
+    expect(onValidity).toHaveBeenLastCalledWith("tag", true)
   })
 
   it("validates JSON objects and arrays and clears invalid state", () => {

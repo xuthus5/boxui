@@ -50,8 +50,8 @@ func syncOutboundsToConfig(
 			return err
 		}
 	}
-	proxyTags := collectProxyTags(outbounds)
-	builder := urlTestGroupBuilder{defaults: defaults, existingByTag: existingByTag}
+	proxyTags := collectProxyTags(outbounds, subscriptionMemberTags(subscriptions))
+	builder := subscriptionGroupBuilder{defaults: defaults, existingByTag: existingByTag}
 	outbounds, groupTags := builder.append(outbounds, subscriptions)
 	outbounds = upsertProxySelector(outbounds, groupTags, proxyTags)
 	cfg["outbounds"] = outbounds
@@ -116,7 +116,7 @@ func shouldReplaceExistingOutbound(entry map[string]any, managedGroups map[strin
 	if managedNodeTypes[typeName] || typeName == "direct" || typeName == "dns" {
 		return true
 	}
-	if typeName == "urltest" && managedGroups[tag] {
+	if (typeName == "urltest" || typeName == "selector") && managedGroups[tag] {
 		return true
 	}
 	return typeName == "selector" && tag == "proxy"
@@ -167,13 +167,23 @@ func buildManagedOutbound(existing map[string]any, outbound model.Outbound) (map
 	return entry, nil
 }
 
-func collectProxyTags(outbounds []any) []string {
+func subscriptionMemberTags(subscriptions []model.Subscription) map[string]bool {
+	tags := map[string]bool{}
+	for _, subscription := range subscriptions {
+		for _, tag := range subscriptionProxyTags(subscription) {
+			tags[tag] = true
+		}
+	}
+	return tags
+}
+
+func collectProxyTags(outbounds []any, excluded map[string]bool) []string {
 	tags := []string{}
 	for _, outbound := range outbounds {
 		entry, _ := outbound.(map[string]any)
 		tag, _ := entry["tag"].(string)
 		typeName, _ := entry["type"].(string)
-		if tag != "" && isProxySelectorCandidate(typeName) {
+		if tag != "" && !excluded[tag] && isProxySelectorCandidate(typeName) {
 			tags = append(tags, tag)
 		}
 	}
@@ -189,12 +199,12 @@ func isProxySelectorCandidate(typeName string) bool {
 	}
 }
 
-type urlTestGroupBuilder struct {
+type subscriptionGroupBuilder struct {
 	defaults      model.URLTestDefaults
 	existingByTag map[string]map[string]any
 }
 
-func (b urlTestGroupBuilder) append(
+func (b subscriptionGroupBuilder) append(
 	outbounds []any,
 	subscriptions []model.Subscription,
 ) ([]any, []string) {
@@ -202,19 +212,26 @@ func (b urlTestGroupBuilder) append(
 	for _, subscription := range subscriptions {
 		memberTags := subscriptionProxyTags(subscription)
 		resolved := core.ResolveURLTest(b.defaults, subscription.URLTest)
-		if len(memberTags) == 0 || !resolved.Enabled {
+		if len(memberTags) == 0 {
 			continue
 		}
 		entry := cloneAnyMap(b.existingByTag[subscription.Name])
 		if entry == nil {
 			entry = map[string]any{}
 		}
-		entry["type"] = "urltest"
+		entry["type"] = "selector"
 		entry["tag"] = subscription.Name
 		entry["outbounds"] = memberTags
-		entry["url"] = resolved.URL
-		entry["interval"] = resolved.Interval
-		entry["tolerance"] = resolved.Tolerance
+		if resolved.Enabled {
+			entry["type"] = "urltest"
+			entry["url"] = resolved.URL
+			entry["interval"] = resolved.Interval
+			entry["tolerance"] = resolved.Tolerance
+		} else {
+			delete(entry, "url")
+			delete(entry, "interval")
+			delete(entry, "tolerance")
+		}
 		outbounds = append(outbounds, entry)
 		groupTags = append(groupTags, subscription.Name)
 	}

@@ -29,9 +29,11 @@ func TestSyncOutboundsResolvesURLTestOverrides(t *testing.T) {
 		t.Fatalf("custom tolerance = %#v", customGroup["tolerance"])
 	}
 	assertURLTestGroupMembers(t, customGroup, "custom-node")
-	if group := optionalOutboundByTag(config, "disabled"); group != nil {
-		t.Fatalf("disabled group should be removed: %#v", group)
+	disabledGroup := outboundByTag(t, config, "disabled")
+	if disabledGroup["type"] != "selector" {
+		t.Fatalf("disabled group type = %#v, want selector", disabledGroup["type"])
 	}
+	assertURLTestGroupMembers(t, disabledGroup, "disabled-node")
 	proxy := outboundByTag(t, config, "proxy")
 	if proxy["default"] != "custom" {
 		t.Fatalf("proxy default = %#v, want custom", proxy["default"])
@@ -43,12 +45,19 @@ func TestSyncOutboundsResolvesURLTestOverrides(t *testing.T) {
 	foundCustom := false
 	for _, member := range members {
 		foundCustom = foundCustom || member == "custom"
-		if member == "disabled" {
-			t.Fatalf("proxy should not reference disabled group: %#v", members)
+		if member == "custom-node" || member == "disabled-node" {
+			t.Fatalf("proxy should reference subscription groups, not their members: %#v", members)
 		}
 	}
 	if !foundCustom {
 		t.Fatalf("proxy should include custom group: %#v", members)
+	}
+	foundDisabled := false
+	for _, member := range members {
+		foundDisabled = foundDisabled || member == "disabled"
+	}
+	if !foundDisabled {
+		t.Fatalf("proxy should include selector subscription group: %#v", members)
 	}
 }
 

@@ -24,7 +24,7 @@ function SelectorControl({ group }: { group: OutboundGroup }) {
   </Select>
 }
 
-function GroupCard({ group }: { group: OutboundGroup }) {
+export function RuntimeGroupCard({ group }: { group: OutboundGroup }) {
   const { t } = useTranslation()
   return <Card size="sm"><CardHeader><CardTitle>{group.tag}</CardTitle><CardDescription>{t("nodes.current")}: {group.now}</CardDescription><CardAction><Badge variant="outline">{group.type}</Badge></CardAction></CardHeader>
     <CardContent>{group.type === "selector" ? <SelectorControl group={group} /> : <URLTestControl group={group} />}</CardContent>
@@ -48,6 +48,6 @@ export function RuntimeGroupsCard() {
   if (!groups.length) return null
   return <section aria-labelledby={titleId} className="flex flex-col gap-3">
     <div><h2 id={titleId} className="text-lg font-medium">{t("nodes.runtimeGroups")}</h2><p className="text-sm text-muted-foreground">{t("nodes.runtimeGroupsDescription")}</p></div>
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{groups.map((group) => <GroupCard key={group.tag} group={group} />)}</div>
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{groups.map((group) => <RuntimeGroupCard key={group.tag} group={group} />)}</div>
   </section>
 }

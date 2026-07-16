@@ -1,4 +1,5 @@
-import { PlusIcon, Trash2Icon, WandSparklesIcon } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
+import { PlusIcon, WandSparklesIcon } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -6,16 +7,15 @@ import { toast } from "sonner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ConfirmAction } from "@/components/confirm-action"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useConfigQuery, useSaveConfigMutation } from "@/features/config/config-hooks"
 import { ProxyEditorDialog } from "@/features/proxy/proxy-editor-dialog"
 import { InboundCard } from "@/features/proxy/inbound-card"
 import { OutboundCard } from "@/features/proxy/outbound-card"
+import { RuntimeGroupCard } from "@/features/nodes/runtime-groups-card"
 import { api } from "@/lib/api/endpoints"
-import type { JsonValue } from "@/lib/api/types"
+import type { JsonValue, OutboundGroup, Subscription } from "@/lib/api/types"
 
 type JsonObject = Record<string, JsonValue>
 interface Editing { index: number; item: JsonObject }
@@ -30,8 +30,42 @@ function InboundCards({ items, onEdit, onDelete }: { items: JsonObject[]; onEdit
   ))}</div>
 }
 
+function configGroup(item: JsonObject): OutboundGroup | null {
+  const type = String(item.type ?? "")
+  const tag = String(item.tag ?? "")
+  const all = Array.isArray(item.outbounds) ? item.outbounds.filter((member): member is string => typeof member === "string") : []
+  if (!tag || !["selector", "urltest"].includes(type) || !all.length) return null
+  return { type, tag, all, now: typeof item.default === "string" ? item.default : all[0] }
+}
+
+function subscriptionTags(subscriptions: Subscription[]) {
+  return new Set(subscriptions.flatMap((subscription) => subscription.outbounds?.map((outbound) => outbound.tag) ?? []))
+}
+
 function OutboundCards({ items, onEdit, onDelete }: { items: JsonObject[]; onEdit: (index: number) => void; onDelete: (index: number) => void }) {
-  return <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{items.map((item, index) => <OutboundCard key={`${String(item.tag)}-${index}`} item={item} onEdit={() => onEdit(index)} onDelete={() => onDelete(index)} />)}</div>
+  const { t } = useTranslation()
+  const subscriptions = useQuery({ queryKey: ["subscriptions"], queryFn: api.subscriptions.list })
+  const runtime = useQuery({ queryKey: ["nodes", "groups"], queryFn: api.nodes.groups })
+  if (subscriptions.isLoading || runtime.isLoading) return <Skeleton className="h-64 w-full" />
+  const error = subscriptions.error ?? runtime.error
+  if (error) return <Alert variant="destructive"><AlertTitle>{t("common.loadFailed")}</AlertTitle><AlertDescription>{error.message}</AlertDescription></Alert>
+  const subscriptionList = Array.isArray(subscriptions.data) ? subscriptions.data : []
+  const memberTags = subscriptionTags(subscriptionList)
+  const subscriptionNames = new Set(subscriptionList.map((subscription) => subscription.name))
+  const runtimeList = Array.isArray(runtime.data?.groups) ? runtime.data.groups : []
+  const runtimeGroups = new Map(runtimeList.map((group) => [group.tag, group]))
+  const indexedItems = items.map((item, index) => ({ item, index }))
+  const independent = indexedItems.filter(({ item }) => !memberTags.has(String(item.tag ?? "")) && !subscriptionNames.has(String(item.tag ?? "")))
+  const groups = subscriptionList.flatMap((subscription) => {
+    if (!subscription.outbounds?.length) return []
+    const configured = indexedItems.find(({ item }) => item.tag === subscription.name)
+    const group = runtimeGroups.get(subscription.name) ?? (configured ? configGroup(configured.item) : null)
+    return group ? [group] : []
+  })
+  return <div className="flex flex-col gap-4">
+    {groups.length ? <section className="flex flex-col gap-3"><div><h2 className="text-lg font-medium">{t("proxy.outbound.group")}</h2><p className="text-sm text-muted-foreground">{t("proxy.description")}</p></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{groups.map((group) => <RuntimeGroupCard key={group.tag} group={group} />)}</div></section> : null}
+    {independent.length ? <section className="flex flex-col gap-3"><div><h2 className="text-lg font-medium">{t("proxy.outbound.protocol")}</h2><p className="text-sm text-muted-foreground">{t("proxy.description")}</p></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{independent.map(({ item, index }) => <OutboundCard key={`${String(item.tag)}-${index}`} item={item} onEdit={() => onEdit(index)} onDelete={() => onDelete(index)} />)}</div></section> : null}
+  </div>
 }
 
 export function ProxyListPage({ configKey, title, addLabel }: { configKey: "inbounds" | "outbounds"; title: string; addLabel: string }) {
@@ -58,11 +92,7 @@ export function ProxyListPage({ configKey, title, addLabel }: { configKey: "inbo
         <Button onClick={() => setEditing({ index: -1, item: {} })}><PlusIcon data-icon="inline-start" />{addLabel}</Button>
       </div></div>
       {(configKey === "inbounds" || configKey === "outbounds") && items.length > 0 ? configKey === "inbounds" ? <InboundCards items={items} onEdit={(index) => setEditing({ index, item: items[index] })} onDelete={(index) => persist(items.filter((_, itemIndex) => itemIndex !== index))} /> : <OutboundCards items={items} onEdit={(index) => setEditing({ index, item: items[index] })} onDelete={(index) => persist(items.filter((_, itemIndex) => itemIndex !== index))} /> : <Card><CardHeader><CardTitle>{title}{t("proxy.listSuffix")}</CardTitle><CardDescription>{t("proxy.description")}</CardDescription></CardHeader><CardContent>
-        {items.length === 0 ? <Empty><EmptyHeader><EmptyTitle>{t("proxy.empty")}</EmptyTitle><EmptyDescription>{t("proxy.emptyDescription")}</EmptyDescription></EmptyHeader><EmptyContent><Button onClick={() => setEditing({ index: -1, item: {} })}>{addLabel}</Button></EmptyContent></Empty> : (
-          <Table><TableHeader><TableRow><TableHead>{t("proxy.tag")}</TableHead><TableHead>{t("common.type")}</TableHead><TableHead>{t("common.address")}</TableHead><TableHead>{t("common.actions")}</TableHead></TableRow></TableHeader><TableBody>
-            {items.map((item, index) => <TableRow key={`${String(item.tag)}-${index}`}><TableCell>{String(item.tag ?? "—")}</TableCell><TableCell>{String(item.type ?? "—")}</TableCell><TableCell>{String(item.server ?? item.listen ?? "—")}</TableCell><TableCell className="flex gap-2"><Button variant="outline" size="sm" onClick={() => setEditing({ index, item })}>{t("common.edit")}</Button><ConfirmAction trigger={<Button variant="destructive" size="sm"><Trash2Icon data-icon="inline-start" />{t("common.delete")}</Button>} title={t("proxy.deleteTitle")} description={t("proxy.deleteDescription", { tag: String(item.tag ?? "") })} confirmLabel={t("proxy.confirmDelete")} confirmVariant="destructive" onConfirm={() => persist(items.filter((_, itemIndex) => itemIndex !== index))} /></TableCell></TableRow>)}
-          </TableBody></Table>
-        )}
+        <Empty><EmptyHeader><EmptyTitle>{t("proxy.empty")}</EmptyTitle><EmptyDescription>{t("proxy.emptyDescription")}</EmptyDescription></EmptyHeader><EmptyContent><Button onClick={() => setEditing({ index: -1, item: {} })}>{addLabel}</Button></EmptyContent></Empty>
       </CardContent></Card>}
       {editing ? <ProxyEditorDialog key={`${editing.index}-${String(editing.item.tag)}`} title={editing.index < 0 ? addLabel : `${t("proxy.editPrefix")} ${String(editing.item.tag ?? "")}`} kind={configKey} item={editing.item} onClose={() => setEditing(null)} onSave={saveItem} /> : null}
     </div>

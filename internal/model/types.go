@@ -71,6 +71,11 @@ type URLTestOverrides struct {
 	Tolerance *uint16 `json:"tolerance,omitempty"`
 }
 
+type RouteRuleMetadata struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
 type Outbound struct {
 	Tag    string `json:"tag"`
 	Type   string `json:"type"`

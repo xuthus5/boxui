@@ -38,6 +38,8 @@ interface PolicyPageProps {
   installLabel: string
   install: () => Promise<APIEnvelope<JsonValue>>
   renderVisual: (props: PolicyVisualEditorProps) => React.ReactNode
+  afterSave?: () => Promise<void>
+  afterInstall?: () => Promise<void>
 }
 
 interface PolicyEditorProps {
@@ -180,6 +182,8 @@ export function PolicyPage({
   installLabel,
   install,
   renderVisual,
+  afterSave,
+  afterInstall,
 }: PolicyPageProps) {
   const { t } = useTranslation()
   const query = useConfigQuery()
@@ -194,9 +198,18 @@ export function PolicyPage({
     )
   }
   const persist = (object: JsonObject) => save.mutate({ ...query.data!, [section]: object }, {
-    onSuccess: (response) => response.status === "rolled_back"
-      ? toast.error(t("policy.rolledBack"))
-      : toast.success(t("proxy.saved")),
+    onSuccess: async (response) => {
+      if (response.status === "rolled_back") {
+        toast.error(t("policy.rolledBack"))
+        return
+      }
+      try {
+        await afterSave?.()
+        toast.success(t("proxy.saved"))
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : String(error))
+      }
+    },
     onError: (error) => toast.error(error.message),
   })
   const installDefaults = () => install()
@@ -204,6 +217,7 @@ export function PolicyPage({
       if (response.status === "rolled_back") throw new Error(t("policy.rolledBack"))
       return query.refetch()
     })
+    .then(() => afterInstall?.())
     .then(() => toast.success(t("policy.installed")))
     .catch((error: Error) => toast.error(error.message))
   const initialSection = query.data?.[section] ?? {}

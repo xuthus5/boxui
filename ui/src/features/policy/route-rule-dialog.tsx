@@ -1,12 +1,14 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
 import { JsonEditor } from "@/features/config/json-editor"
 import { usePolicyDialogState } from "@/features/policy/policy-dialog-state"
 import { PolicyFormFields } from "@/features/policy/policy-form-fields"
@@ -18,13 +20,29 @@ import {
 } from "@/features/policy/policy-form-model"
 import { changeRouteAction, changeRouteRuleType, routeActionFields, routeActions, routeMatchFields } from "@/features/policy/route-form-model"
 import { transformRouteField } from "@/features/policy/route-form-transform"
+import type { RouteRuleMetadata } from "@/lib/api/types"
 
 export interface RouteRuleDialogProps {
   open: boolean
   item: JsonObject
+  metadata?: RouteRuleMetadata
   title: string
   onOpenChange: (open: boolean) => void
-  onSave: (item: JsonObject) => void
+  onSave: (item: JsonObject, metadata: RouteRuleMetadata) => void
+}
+
+const emptyMetadata: RouteRuleMetadata = { name: "", description: "" }
+
+function MetadataFields({ metadata, onChange }: { metadata: RouteRuleMetadata; onChange: (value: RouteRuleMetadata) => void }) {
+  const { t } = useTranslation()
+  return <FieldGroup className="grid gap-4 sm:grid-cols-2"><Field><FieldLabel htmlFor="route-rule-name">{t("policy.route.ruleName")}</FieldLabel>
+    <Input id="route-rule-name" maxLength={100} value={metadata.name} placeholder={t("policy.route.ruleNamePlaceholder")}
+      onChange={(event) => onChange({ ...metadata, name: event.target.value })} />
+    <FieldDescription>{t("policy.route.ruleNameDescription")}</FieldDescription></Field>
+    <Field><FieldLabel htmlFor="route-rule-description">{t("policy.route.ruleDescription")}</FieldLabel>
+      <Textarea id="route-rule-description" maxLength={500} value={metadata.description} placeholder={t("policy.route.ruleDescriptionPlaceholder")}
+        onChange={(event) => onChange({ ...metadata, description: event.target.value })} />
+    </Field></FieldGroup>
 }
 
 const paths = (values: readonly string[]) => routeMatchFields.filter((field) => values.includes(field.path))
@@ -144,9 +162,10 @@ function RuleTabs(props: RuleTabsProps) {
   </Tabs>
 }
 
-export function RouteRuleDialog({ open, item, title, onOpenChange, onSave }: RouteRuleDialogProps) {
+export function RouteRuleDialog({ open, item, metadata = emptyMetadata, title, onOpenChange, onSave }: RouteRuleDialogProps) {
   const { t } = useTranslation()
   const state = usePolicyDialogState(item, transformRouteField)
+  const [details, setDetails] = useState(metadata)
   const requiredValid = requiredRuleValue(state.object) && requiredActionValue(state.object)
   const canSave = state.jsonValid && requiredValid && state.invalidFields.size === 0
   return <Dialog open={open} onOpenChange={onOpenChange}>
@@ -155,12 +174,13 @@ export function RouteRuleDialog({ open, item, title, onOpenChange, onSave }: Rou
       <div className="min-h-0 min-w-0 overflow-y-auto pr-1"><div className="flex min-w-0 flex-col gap-4">
         {!requiredValid ? <Alert variant="destructive"><AlertTitle>{t("policy.route.requiredTitle")}</AlertTitle>
           <AlertDescription>{t("policy.route.ruleRequiredDescription")}</AlertDescription></Alert> : null}
+        <MetadataFields metadata={details} onChange={setDetails} />
         <RuleTabs object={state.object} value={state.value} title={title} revision={state.revision}
           editorRevision={state.editorRevision} onChange={state.update} onJSONChange={state.updateJSON}
           onValidity={state.updateValidity} transform={state.transform} />
       </div></div>
       <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>{t("policy.route.cancel")}</Button>
-        <Button disabled={!canSave} onClick={() => { if (state.jsonValid) onSave(state.object) }}>{t("policy.route.save")}</Button></DialogFooter>
+        <Button disabled={!canSave} onClick={() => { if (state.jsonValid) onSave(state.object, details) }}>{t("policy.route.save")}</Button></DialogFooter>
     </DialogContent>
   </Dialog>
 }

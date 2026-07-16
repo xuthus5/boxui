@@ -102,7 +102,7 @@ describe("unknown route values", () => {
     await userEvent.click(screen.getByRole("button", { name: "保存" }))
     expect(onSave).toHaveBeenCalledWith({
       domain: ["example.com"], action: "reject", payload: { enabled: true },
-    })
+    }, { name: "", description: "" })
   })
 
   it("switches an unknown action and preserves its payload", async () => {
@@ -116,7 +116,7 @@ describe("unknown route values", () => {
     expect(await screen.findByRole("option", { name: "future" })).toBeInTheDocument()
     await userEvent.click(screen.getByRole("option", { name: "reject" }))
     await userEvent.click(screen.getByRole("button", { name: "保存" }))
-    expect(onSave).toHaveBeenCalledWith({ action: "reject", method: "drop", payload: { enabled: true } })
+    expect(onSave).toHaveBeenCalledWith({ action: "reject", method: "drop", payload: { enabled: true } }, { name: "", description: "" })
   })
 })
 

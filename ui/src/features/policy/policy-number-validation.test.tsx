@@ -97,7 +97,7 @@ describe("legacy octal routing marks", () => {
     fireEvent.change(screen.getByLabelText("路由标记"), { target: { value: "0173" } })
     await userEvent.click(screen.getByRole("button", { name: "保存" }))
 
-    expect(onSave).toHaveBeenCalledWith({ action: "direct", routing_mark: "0173" })
+    expect(onSave).toHaveBeenCalledWith({ action: "direct", routing_mark: "0173" }, { name: "", description: "" })
   })
 
   it("preserves DNS routing_mark through the server Dialog", async () => {

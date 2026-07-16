@@ -83,7 +83,7 @@ export const zh = {
     } },
     policy: { description: "结构化配置可通过 JSON 完整管理，并保留未知字段。", save: "保存配置", installRoute: "安装默认路由", installDNS: "安装默认 DNS", installed: "默认配置已安装", rolledBack: "配置已回滚", visualTab: "可视化配置", advancedTab: "高级 JSON", jsonLabel: "流量策略 JSON", invalidStructureTitle: "配置结构无效", invalidStructureDescription: "规则、规则集或服务器列表必须是仅包含对象的数组。请在高级 JSON 中修复。", route: {
       globalTitle: "全局路由设置", globalDescription: "配置默认出站、域名解析与网络回退行为。", globalFooter: "未展示的字段会保留在高级 JSON 中。",
-      rulesTitle: "路由规则", rulesDescription: "规则按列表顺序依次匹配。", addRule: "新增规则", emptyRulesTitle: "暂无路由规则", emptyRulesDescription: "新增第一条匹配规则。", rulesCount: "共 {{count}} 条规则",
+      rulesTitle: "路由规则", rulesDescription: "规则按列表顺序依次匹配。", addRule: "新增规则", emptyRulesTitle: "暂无路由规则", emptyRulesDescription: "新增第一条匹配规则。", rulesCount: "共 {{count}} 条规则", ruleName: "规则名称", ruleNamePlaceholder: "可选，留空时显示规则序号", ruleNameDescription: "名称仅由 BoxUI 保存，不会写入 sing-box 配置。", ruleDescription: "规则描述", ruleDescriptionPlaceholder: "可选，说明这条规则的用途",
       ruleSetsTitle: "路由规则集", ruleSetsDescription: "管理内联、本地、远程及其他类型的规则集。", addRuleSet: "新增规则集", emptyRuleSetsTitle: "暂无路由规则集", emptyRuleSetsDescription: "新增第一项规则集。", ruleSetsCount: "共 {{count}} 个规则集",
       unnamed: "未命名", ruleSetLocationMissing: "未设置路径或 URL", ruleCardTitle: "规则 #{{index}}", editRule: "编辑规则 {{index}}", copyRule: "复制规则 {{index}}", moveRuleUp: "上移规则 {{index}}", moveRuleDown: "下移规则 {{index}}", deleteRule: "删除规则 {{index}}", moreRuleActions: "更多规则 {{index}}",
       editRuleSet: "编辑规则集 {{tag}}", copyRuleSet: "复制规则集 {{tag}}", deleteRuleSet: "删除规则集 {{tag}}", moreRuleSetActions: "更多规则集 {{tag}}", copy: "复制", moveUp: "上移", moveDown: "下移", delete: "删除", edit: "编辑",

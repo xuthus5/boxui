@@ -9,10 +9,12 @@ import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader,
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { JsonObject } from "@/features/policy/policy-form-model"
 import { routeMatchFields, summarizeRouteRule } from "@/features/policy/route-form-model"
+import type { RouteRuleMetadata } from "@/lib/api/types"
 
 interface RouteRuleCardProps {
   index: number
   item: JsonObject
+  metadata?: RouteRuleMetadata
   first: boolean
   last: boolean
   onEdit: () => void
@@ -49,7 +51,7 @@ function MobileActions(props: Omit<RouteRuleCardProps, "item" | "onEdit">) {
 
 export function RouteRuleCard(props: RouteRuleCardProps) {
   const { t } = useTranslation()
-  const { index, item, first, last, onEdit, onCopy, onMoveUp, onMoveDown, onDelete } = props
+  const { index, item, metadata, first, last, onEdit, onCopy, onMoveUp, onMoveDown, onDelete } = props
   const [deleting, setDeleting] = useState(false)
   const number = index + 1
   const matchLabels = new Map<string, string>(
@@ -57,10 +59,12 @@ export function RouteRuleCard(props: RouteRuleCardProps) {
   )
   const summary = summarizeRouteRule(item, { matchLabel: (path) => matchLabels.get(path) ?? path })
   const type = String(item.type ?? "default")
+  const title = metadata?.name.trim() || t("policy.route.ruleCardTitle", { index: number })
+  const description = metadata?.description.trim() || type
   const confirmDelete = () => { setDeleting(false); onDelete() }
   return <>
     <Card size="sm">
-      <CardHeader className="min-w-0"><CardTitle>{t("policy.route.ruleCardTitle", { index: number })}</CardTitle><CardDescription>{type}</CardDescription>
+      <CardHeader className="min-w-0"><CardTitle>{title}</CardTitle><CardDescription>{description}</CardDescription>
         <CardAction><Button variant="outline" size="xs" aria-label={t("policy.route.editRule", { index: number })} onClick={onEdit}><PencilIcon data-icon="inline-start" />{t("policy.route.edit")}</Button></CardAction>
       </CardHeader>
       <CardContent><div className="flex flex-wrap gap-2">

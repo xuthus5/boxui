@@ -150,6 +150,7 @@ func newHandler(cfg *config.Config, db *bbolt.DB, settingsManager *core.Settings
 	instance := core.NewSBInstance(cfg.ConfigPath, kernelLogWriter)
 	subscriptionManager := core.NewSubscriptionManager(db, cfg.DataDir)
 	nodeManager := core.NewNodeManager(db)
+	routeMetadataManager := core.NewRouteRuleMetadataManager(db)
 
 	authHandler := api.NewAuthHandler(cfg.Username, cfg.Password, settingsManager)
 	configHandler := api.NewConfigHandler(
@@ -159,6 +160,7 @@ func newHandler(cfg *config.Config, db *bbolt.DB, settingsManager *core.Settings
 		core.NewDefaultOutboundsInstaller(),
 		core.NewDefaultRouteInstaller(),
 		core.NewDefaultDNSInstaller(),
+		routeMetadataManager,
 	)
 	serviceHandler := api.NewServiceHandler(instance)
 	statsHandler := api.NewStatsHandler(kernelLogWriter, appLogWriter, instance)

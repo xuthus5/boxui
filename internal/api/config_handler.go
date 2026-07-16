@@ -27,14 +27,15 @@ type ConfigHandler struct {
 	outboundInstaller core.OutboundDefaultsInstaller
 	routeInstaller    core.RouteDefaultsInstaller
 	dnsInstaller      core.DNSDefaultsInstaller
+	routeMetadata     *core.RouteRuleMetadataManager
 }
 
 type restartableInstance interface {
 	Restart() error
 }
 
-func NewConfigHandler(configPath string, instance restartableInstance, ruleSetInstaller core.RuleSetDefaultsInstaller, outboundInstaller core.OutboundDefaultsInstaller, routeInstaller core.RouteDefaultsInstaller, dnsInstaller core.DNSDefaultsInstaller) *ConfigHandler {
-	return &ConfigHandler{
+func NewConfigHandler(configPath string, instance restartableInstance, ruleSetInstaller core.RuleSetDefaultsInstaller, outboundInstaller core.OutboundDefaultsInstaller, routeInstaller core.RouteDefaultsInstaller, dnsInstaller core.DNSDefaultsInstaller, routeMetadata ...*core.RouteRuleMetadataManager) *ConfigHandler {
+	handler := &ConfigHandler{
 		configPath:        configPath,
 		instance:          instance,
 		ruleSetInstaller:  ruleSetInstaller,
@@ -42,6 +43,10 @@ func NewConfigHandler(configPath string, instance restartableInstance, ruleSetIn
 		routeInstaller:    routeInstaller,
 		dnsInstaller:      dnsInstaller,
 	}
+	if len(routeMetadata) > 0 {
+		handler.routeMetadata = routeMetadata[0]
+	}
+	return handler
 }
 
 func validateRuntimeConfig(body []byte) error {

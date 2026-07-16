@@ -34,13 +34,18 @@ const config = {
 
 function stubConfig() {
   sessionStore.set({ token: "token", expiresAt: "2099-01-01T00:00:00Z" })
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(config))))
+  vi.stubGlobal("fetch", vi.fn((input: string | URL | Request) => Promise.resolve(new Response(JSON.stringify(
+    String(input) === "/api/config/route/rule-metadata"
+      ? [{ name: "", description: "" }, { name: "", description: "" }]
+      : config,
+  )))))
 }
 
 async function renderPolicy(path: "/policy/route" | "/policy/dns", heading: string) {
   stubConfig()
   renderApp(<App />, path)
   await screen.findByRole("heading", { name: heading })
+  if (path === "/policy/route") await screen.findByRole("button", { name: /编辑规则 1|Edit route rule 1/ })
 }
 
 async function expectPolicyTabs(visual: string, advanced: string) {

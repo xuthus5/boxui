@@ -17,5 +17,5 @@ it("keeps network type matcher when changing away from direct", async () => {
   await user.click(await screen.findByRole("option", { name: "reject" }))
   await user.click(screen.getByRole("button", { name: "保存" }))
 
-  expect(onSave).toHaveBeenCalledWith({ action: "reject", network_type: ["wifi"] })
+  expect(onSave).toHaveBeenCalledWith({ action: "reject", network_type: ["wifi"] }, { name: "", description: "" })
 })

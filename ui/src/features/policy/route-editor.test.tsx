@@ -9,6 +9,7 @@ import { RouteRuleDialog } from "@/features/policy/route-rule-dialog"
 import { RouteRuleSetDialog } from "@/features/policy/route-rule-set-dialog"
 import { RouteVisualEditor } from "@/features/policy/route-visual-editor"
 import type { JsonObject } from "@/features/policy/policy-form-model"
+import type { RouteRuleMetadata } from "@/lib/api/types"
 import { sessionStore } from "@/lib/session"
 import { renderApp } from "@/test/render"
 
@@ -17,8 +18,9 @@ afterEach(() => {
   sessionStore.clear()
 })
 
-function EditorHarness({ initial }: { initial: JsonObject }) {
+function EditorHarness({ initial, initialMetadata = [] }: { initial: JsonObject; initialMetadata?: RouteRuleMetadata[] }) {
   const [object, setObject] = useState(initial)
+  const [metadata, setMetadata] = useState(initialMetadata)
   const props: PolicyVisualEditorProps = {
     object,
     revision: 0,
@@ -26,7 +28,8 @@ function EditorHarness({ initial }: { initial: JsonObject }) {
     onFieldValidityChange: vi.fn(),
   }
   const rules = Array.isArray(object.rules) ? object.rules : []
-  return <><RouteVisualEditor {...props} /><output aria-label="route state">{JSON.stringify(object)}</output>
+  return <><RouteVisualEditor {...props} metadata={metadata} onMetadataChange={setMetadata} /><output aria-label="route state">{JSON.stringify(object)}</output>
+    <output aria-label="route metadata state">{JSON.stringify(metadata)}</output>
     <output aria-label="rule identity">{String(rules.length > 1 && rules[0] === rules[1])}</output></>
 }
 
@@ -113,10 +116,55 @@ describe("route global editor", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/config/", expect.objectContaining({
       method: "PUT", body: JSON.stringify(expectedSavedConfig()),
     })))
-  })
+  }, 15_000)
+
+  it("persists rule metadata separately from the sing-box configuration", async () => {
+    sessionStore.set({ token: "token", expiresAt: "2099-01-01T00:00:00Z" })
+    const config = { ...configFixture, route: { ...routeFixture, rules: [{ action: "reject" }] } }
+    const fetchMock = vi.fn((input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input)
+      if (url === "/api/config/route/rule-metadata" && init?.method === "PUT") {
+        return Promise.resolve(new Response(String(init.body)))
+      }
+      if (url === "/api/config/route/rule-metadata") {
+        return Promise.resolve(new Response('[{"name":"","description":""}]'))
+      }
+      if (init?.method === "PUT") {
+        return Promise.resolve(new Response(JSON.stringify({ status: "ok", data: null, error: null, meta: {} })))
+      }
+      return Promise.resolve(new Response(JSON.stringify(config)))
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    const user = userEvent.setup()
+    renderApp(<App />, "/policy/route")
+    await user.click(await screen.findByRole("button", { name: "编辑规则 1" }))
+    fireEvent.change(screen.getByLabelText("规则名称"), { target: { value: "拒绝未知流量" } })
+    fireEvent.change(screen.getByLabelText("规则描述"), { target: { value: "用于测试独立元数据" } })
+    await user.click(screen.getByRole("button", { name: "保存" }))
+    await user.click(screen.getByRole("button", { name: "保存配置" }))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/config/route/rule-metadata", expect.objectContaining({
+      method: "PUT", body: '[{"name":"拒绝未知流量","description":"用于测试独立元数据"}]',
+    })))
+    const configCall = fetchMock.mock.calls.find(([url, init]) => String(url) === "/api/config/" && init?.method === "PUT")
+    expect(configCall?.[1]?.body).not.toContain("拒绝未知流量")
+  }, 15_000)
 })
 
 describe("route rule dialog", () => {
+  it("edits optional rule name and description outside the sing-box rule JSON", async () => {
+    const onSave = vi.fn()
+    renderApp(<RouteRuleDialog open item={{ action: "reject" }} metadata={{ name: "广告拦截", description: "阻止广告请求" }}
+      title="编辑规则" onOpenChange={vi.fn()} onSave={onSave} />)
+    expect(screen.getByLabelText("规则名称")).toHaveValue("广告拦截")
+    expect(screen.getByLabelText("规则描述")).toHaveValue("阻止广告请求")
+    fireEvent.change(screen.getByLabelText("规则名称"), { target: { value: "广告流量拦截" } })
+    fireEvent.change(screen.getByLabelText("规则描述"), { target: { value: "拦截规则集中的广告域名" } })
+    await userEvent.click(screen.getByRole("button", { name: "保存" }))
+    expect(onSave).toHaveBeenCalledWith({ action: "reject" }, {
+      name: "广告流量拦截", description: "拦截规则集中的广告域名",
+    })
+  })
+
   it("offers every match tab and supported action with required action values", async () => {
     renderApp(<RouteRuleDialog open item={{}} title="新增规则" onOpenChange={vi.fn()} onSave={vi.fn()} />)
     expect(screen.getByRole("dialog")).toHaveClass("sm:max-w-5xl")
@@ -176,7 +224,7 @@ describe("route rule dialog", () => {
     }} onOpenChange={vi.fn()} onSave={onSave} />)
     await choose("规则类型", "default")
     await userEvent.click(screen.getByRole("button", { name: "保存" }))
-    expect(onSave).toHaveBeenCalledWith({ invert: true, action: "reject", custom: "keep" })
+    expect(onSave).toHaveBeenCalledWith({ invert: true, action: "reject", custom: "keep" }, { name: "", description: "" })
   })
 
   it("blocks save for invalid or non-object advanced JSON", async () => {
@@ -195,15 +243,26 @@ describe("route rule dialog", () => {
 })
 
 describe("route rule cards", () => {
+  it("uses the configured name and description, then falls back to the rule number", () => {
+    renderApp(<EditorHarness initial={{ rules: [{ action: "sniff" }, { action: "reject" }] }}
+      initialMetadata={[{ name: "协议嗅探", description: "识别连接协议" }, { name: "", description: "" }]} />)
+    expect(screen.getByText("协议嗅探")).toBeInTheDocument()
+    expect(screen.getByText("识别连接协议")).toBeInTheDocument()
+    expect(screen.getByText("规则 #2")).toBeInTheDocument()
+  })
+
   it("adds defaults, summarizes, copies deeply, moves adjacently, and confirms deletion", async () => {
     const user = userEvent.setup()
     renderApp(<EditorHarness initial={{}} />)
     expect(screen.getByText("暂无路由规则")).toBeInTheDocument()
     await user.click(screen.getAllByRole("button", { name: "新增规则" })[0])
+    fireEvent.change(screen.getByLabelText("规则名称"), { target: { value: "主路由规则" } })
+    fireEvent.change(screen.getByLabelText("规则描述"), { target: { value: "用于代理目标流量" } })
     await user.click(screen.getByRole("tab", { name: "执行动作" }))
     fireEvent.change(screen.getByLabelText("目标出站"), { target: { value: "proxy" } })
     await user.click(screen.getByRole("button", { name: "保存" }))
     expect(screen.getByLabelText("route state")).toHaveTextContent('"action":"route"')
+    expect(screen.getByLabelText("route metadata state")).toHaveTextContent('"name":"主路由规则"')
 
     await user.click(screen.getByRole("button", { name: "编辑规则 1" }))
     await user.click(screen.getByRole("tab", { name: "域名与地址" }))
@@ -216,17 +275,20 @@ describe("route rule cards", () => {
     expect(screen.getByText("proxy")).toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "复制规则 1" }))
-    expect(screen.getAllByText(/规则 #/)).toHaveLength(2)
+    expect(screen.getAllByText("主路由规则")).toHaveLength(2)
     expect(screen.getByLabelText("rule identity")).toHaveTextContent("false")
     expect(screen.getByRole("button", { name: "上移规则 1" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "下移规则 2" })).toBeDisabled()
     await user.click(screen.getByRole("button", { name: "编辑规则 2" }))
+    fireEvent.change(screen.getByLabelText("规则名称"), { target: { value: "副本规则" } })
     await user.click(screen.getByRole("tab", { name: "执行动作" }))
     await choose("执行动作", "reject")
     await user.click(screen.getByRole("button", { name: "保存" }))
     await user.click(screen.getByRole("button", { name: "下移规则 1" }))
     const moved = JSON.parse(screen.getByLabelText("route state").textContent ?? "{}")
     expect(moved.rules.map((rule: JsonObject) => rule.action)).toEqual(["reject", "route"])
+    const movedMetadata = JSON.parse(screen.getByLabelText("route metadata state").textContent ?? "[]")
+    expect(movedMetadata.map((item: RouteRuleMetadata) => item.name)).toEqual(["副本规则", "主路由规则"])
 
     await user.click(screen.getByRole("button", { name: "删除规则 1" }))
     expect(screen.getByRole("alertdialog")).toBeInTheDocument()
@@ -234,6 +296,7 @@ describe("route rule cards", () => {
     expect(JSON.parse(state?.textContent ?? "{}").rules).toHaveLength(2)
     await user.click(screen.getByRole("button", { name: "确认删除" }))
     expect(screen.getAllByRole("button", { name: /编辑规则/ })).toHaveLength(1)
+    expect(screen.getByLabelText("route metadata state")).toHaveTextContent('"name":"主路由规则"')
   }, 15_000)
 })
 

@@ -134,6 +134,8 @@ async function checkRoutePolicy(page: Page) {
   await page.getByRole("button", { name: "Edit route rule 1" }).click()
   const dialog = page.getByRole("dialog", { name: "Edit route rule 1" })
   await expectDialogFitsViewport(dialog)
+  await expect(dialog.getByLabel("Rule name")).toBeVisible()
+  await expect(dialog.getByLabel("Rule description")).toBeVisible()
   await expectKeyboardTabs(page, dialog, "Basics and network", "Domains and addresses")
   await dialog.getByRole("button", { name: "Cancel" }).click()
   await expectPageFitsViewport(page)

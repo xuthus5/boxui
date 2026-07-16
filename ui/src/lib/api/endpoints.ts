@@ -14,6 +14,7 @@ import type {
   TrafficHistoryPoint,
   URLTestDefaults,
   URLTestOverrides,
+  RouteRuleMetadata,
   VersionInfo,
 } from "@/lib/api/types"
 
@@ -47,6 +48,10 @@ export const api = {
     installRuleSets: () => apiRequestEnvelope<JsonValue>("/api/config/rule-sets/defaults", json("POST")),
     installOutbounds: () => apiRequestEnvelope<JsonValue>("/api/config/outbounds/defaults", json("POST")),
     installRoute: () => apiRequestEnvelope<JsonValue>("/api/config/route/defaults", json("POST")),
+    getRouteRuleMetadata: () => apiRequest<RouteRuleMetadata[]>("/api/config/route/rule-metadata"),
+    updateRouteRuleMetadata: (metadata: RouteRuleMetadata[]) => apiRequest<RouteRuleMetadata[]>(
+      "/api/config/route/rule-metadata", json("PUT", metadata),
+    ),
   },
   service: {
     status: () => apiRequest<ServiceStatus>("/api/service/status"),

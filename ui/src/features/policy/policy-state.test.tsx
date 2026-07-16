@@ -58,7 +58,9 @@ describe("policy alternate states", () => {
       "/api/config/rule-sets/defaults",
       "/api/config/route/defaults",
     ])
-    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === undefined)).toHaveLength(2)
+    const reads = fetchMock.mock.calls.filter(([, init]) => init?.method === undefined).map(([input]) => String(input))
+    expect(reads.filter((url) => url === "/api/config/")).toHaveLength(2)
+    expect(reads.filter((url) => url === "/api/config/route/rule-metadata")).toHaveLength(2)
   })
 })
 

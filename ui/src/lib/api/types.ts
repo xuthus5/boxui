@@ -97,6 +97,11 @@ export interface URLTestOverrides {
   tolerance?: number
 }
 
+export interface RouteRuleMetadata {
+  name: string
+  description: string
+}
+
 export interface ImportResult {
   tag: string
   type: string

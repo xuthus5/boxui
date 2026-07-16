@@ -55,7 +55,6 @@ func (h *ConfigHandler) InstallDefaultOutbounds(w http.ResponseWriter, r *http.R
 		writeJSONErrorCode(w, http.StatusInternalServerError, model.ErrorInternal, "failed to write config")
 		return
 	}
-
 	writeJSONStatus(w, http.StatusOK, status, result.Installed, apiErr, map[string]any{
 		"installed_count": len(result.Installed),
 		"rolled_back":     status == model.StatusRolledBack,
@@ -105,6 +104,12 @@ func (h *ConfigHandler) InstallDefaultRouteRules(w http.ResponseWriter, r *http.
 	if err != nil {
 		writeJSONErrorCode(w, http.StatusInternalServerError, model.ErrorInternal, "failed to write config")
 		return
+	}
+	if status != model.StatusRolledBack && h.routeMetadata != nil {
+		if err := h.routeMetadata.ApplyDefaultNames(result.Rules); err != nil {
+			writeJSONErrorCode(w, http.StatusInternalServerError, model.ErrorInternal, "failed to save default route rule metadata")
+			return
+		}
 	}
 
 	writeJSONStatus(w, http.StatusOK, status, result.Installed, apiErr, map[string]any{

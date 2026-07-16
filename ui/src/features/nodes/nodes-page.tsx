@@ -6,7 +6,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { NodeSection } from "@/features/nodes/node-section"
-import { RuntimeGroupsCard } from "@/features/nodes/runtime-groups-card"
 import { api } from "@/lib/api/endpoints"
 import type { Outbound, TestResult } from "@/lib/api/types"
 
@@ -45,6 +44,5 @@ export function NodesPage() {
     <NodeSection title={t("nodes.allNodes")} description={t("nodes.allNodesDescription")} nodes={nodes} results={resultsQuery.data} />
     <SubscriptionSections groups={subscriptions} results={resultsQuery.data} />
     <NodeSection title={t("nodes.importedNodes")} description={t("nodes.importedNodesDescription")} nodes={imported} results={resultsQuery.data} />
-    <RuntimeGroupsCard />
   </div>
 }

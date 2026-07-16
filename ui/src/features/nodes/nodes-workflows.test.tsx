@@ -75,27 +75,16 @@ describe("node management workflows", () => {
   })
 })
 
-describe("node runtime groups", () => {
-  it("selects selector members and runs URLTest groups", async () => {
-    const { fetchMock, user } = setup((path) => {
+describe("node page responsibilities", () => {
+  it("does not render runtime group controls", async () => {
+    setup((path) => {
       if (path === "/api/nodes/") return []
-      if (path === "/api/nodes/groups") return { groups: [
-        { type: "selector", tag: "proxy", now: "a", all: ["a", "b"] },
-        { type: "urltest", tag: "auto", now: "a", all: ["a", "b"] },
-      ] }
-      if (path === "/api/nodes/groups/auto/urltest") return { a: 12, b: 24 }
+      if (path === "/api/nodes/groups") return { groups: [{ type: "selector", tag: "proxy", now: "a", all: ["a", "b"] }] }
       return {}
     })
 
-    expect(await screen.findByText("proxy")).toBeInTheDocument()
-    await user.click(screen.getByRole("combobox", { name: "proxy" }))
-    await user.click(await screen.findByRole("option", { name: "b" }))
-    await user.click(screen.getByRole("button", { name: "运行 auto URLTest" }))
-
-    expect(await screen.findByText("a: 12 ms")).toBeInTheDocument()
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/nodes/selectors/proxy/select",
-      expect.objectContaining({ method: "POST", body: JSON.stringify({ tag: "b" }) }),
-    )
+    await screen.findByRole("heading", { name: "节点" })
+    expect(screen.queryByText("proxy")).not.toBeInTheDocument()
+    expect(screen.queryByRole("combobox", { name: "proxy" })).not.toBeInTheDocument()
   })
 })

@@ -113,17 +113,4 @@ describe("node fallback and runtime branches", () => {
     expect(within(card).getByText("—", { selector: "dd *" })).toBeInTheDocument()
   })
 
-  it("reports URLTest failures", async () => {
-    const user = authenticate()
-    vi.stubGlobal("fetch", vi.fn((input: string | URL | Request, init?: RequestInit) => {
-      const path = typeof input === "string" ? input : input.toString()
-      if (path === "/api/nodes/") return Promise.resolve(new Response("[]"))
-      if (path === "/api/nodes/groups") return Promise.resolve(new Response(JSON.stringify({ groups: [{ type: "urltest", tag: "auto", now: "a", all: ["a"] }] })))
-      if (init?.method === "POST") return Promise.resolve(new Response(JSON.stringify({ code: "unavailable", message: "kernel stopped" }), { status: 503 }))
-      return Promise.resolve(new Response("{}"))
-    }))
-    renderApp(<App />, "/nodes")
-    await user.click(await screen.findByRole("button", { name: "运行 auto URLTest" }))
-    expect(await screen.findByText("kernel stopped")).toBeInTheDocument()
-  })
 })

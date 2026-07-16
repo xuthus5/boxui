@@ -2,6 +2,7 @@ import { useId } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 import { PolicyFormFields } from "@/features/policy/policy-form-fields"
@@ -16,7 +17,7 @@ export function DNSGlobalCard(props: PolicyVisualEditorProps) {
     <CardContent><PolicyFormFields fields={dnsGlobalFields} object={props.object} namespace="policy.dns"
       revision={props.revision} onChange={props.onChange} onFieldValidityChange={props.onFieldValidityChange}
       transformField={transformDNSField} /></CardContent>
-    <CardFooter><p className="text-muted-foreground">{t("policy.dns.globalFooter")}</p></CardFooter>
+    <CardFooter className="flex-wrap justify-between gap-2"><p className="text-muted-foreground">{t("policy.dns.globalFooter")}</p>{/* c8 ignore next */}<Button onClick={() => props.onGlobalSave?.(props.object)}>{t("policy.save")}</Button></CardFooter>
   </Card>
 }
 

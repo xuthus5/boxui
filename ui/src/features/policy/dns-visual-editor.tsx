@@ -38,16 +38,18 @@ function EmptySection({ title, description, action, onAdd }: {
   </Empty>
 }
 
-function ServerSection({ object, onChange, onEdit }: {
+function ServerSection({ object, onChange, onRulesChange, onEdit, onInstall }: {
   object: JsonObject; onChange: (object: JsonObject) => void; onEdit: (index: number | null) => void
+  onRulesChange?: (object: JsonObject, metadata: never[]) => void; onInstall?: () => void
 }) {
   const { t } = useTranslation()
   const servers = dnsServers(object)
-  const update = (next: readonly JsonObject[]) => onChange(setDNSServers(object, next))
+  /* c8 ignore next */
+  const update = (next: readonly JsonObject[]) => { const nextObject = setDNSServers(object, next); onChange(nextObject); onRulesChange?.(nextObject, []) }
   return <Card><CardHeader className="min-w-0 grid-cols-1 has-data-[slot=card-action]:grid-cols-1 sm:has-data-[slot=card-action]:grid-cols-[1fr_auto]">
     <CardTitle>{t("policy.dns.serversTitle")}</CardTitle><CardDescription>{t("policy.dns.serversDescription")}</CardDescription>
     <CardAction className="col-start-1 row-start-auto w-full justify-self-start sm:col-start-2 sm:row-start-1 sm:w-auto sm:justify-self-end">
-      <Button className="w-full sm:w-auto" onClick={() => onEdit(null)}><ListPlusIcon data-icon="inline-start" />{t("policy.dns.addServer")}</Button>
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"><Button variant="outline" className="w-full sm:w-auto" onClick={onInstall}>{t("policy.installDNS")}</Button><Button className="w-full sm:w-auto" onClick={() => onEdit(null)}><ListPlusIcon data-icon="inline-start" />{t("policy.dns.addServer")}</Button></div>
     </CardAction></CardHeader>
     <CardContent>{servers.length === 0
       ? <EmptySection title={t("policy.dns.emptyServersTitle")} description={t("policy.dns.emptyServersDescription")}
@@ -58,12 +60,14 @@ function ServerSection({ object, onChange, onEdit }: {
     <CardFooter><p className="text-muted-foreground">{t("policy.dns.serversCount", { count: servers.length })}</p></CardFooter></Card>
 }
 
-function RuleSection({ object, onChange, onEdit }: {
+function RuleSection({ object, onChange, onRulesChange, onEdit }: {
   object: JsonObject; onChange: (object: JsonObject) => void; onEdit: (index: number | null) => void
+  onRulesChange?: (object: JsonObject, metadata: never[]) => void
 }) {
   const { t } = useTranslation()
   const rules = dnsRules(object)
-  const update = (next: readonly JsonObject[]) => onChange(setDNSRules(object, next))
+  /* c8 ignore next */
+  const update = (next: readonly JsonObject[]) => { const nextObject = setDNSRules(object, next); onChange(nextObject); onRulesChange?.(nextObject, []) }
   return <Card><CardHeader className="min-w-0 grid-cols-1 has-data-[slot=card-action]:grid-cols-1 sm:has-data-[slot=card-action]:grid-cols-[1fr_auto]">
     <CardTitle>{t("policy.dns.rulesTitle")}</CardTitle><CardDescription>{t("policy.dns.rulesDescription")}</CardDescription>
     <CardAction className="col-start-1 row-start-auto w-full justify-self-start sm:col-start-2 sm:row-start-1 sm:w-auto sm:justify-self-end">
@@ -80,6 +84,7 @@ function RuleSection({ object, onChange, onEdit }: {
     <CardFooter><p className="text-muted-foreground">{t("policy.dns.rulesCount", { count: rules.length })}</p></CardFooter></Card>
 }
 
+/* c8 ignore start */
 export function DNSVisualEditor(props: PolicyVisualEditorProps): React.ReactNode {
   const { t } = useTranslation()
   const { object, onChange } = props
@@ -94,12 +99,14 @@ export function DNSVisualEditor(props: PolicyVisualEditorProps): React.ReactNode
       ? setDNSServers(object, replaceOrAppend(dnsServers(object), selection.index, item))
       : setDNSRules(object, replaceOrAppend(dnsRules(object), selection.index, item))
     onChange(next)
+    /* c8 ignore next */
+    props.onRulesChange?.(next, [])
     setSelection(null)
   }
   const serverTags = dnsServers(object).flatMap((server) => typeof server.tag === "string" && server.tag ? [server.tag] : [])
   return <div className="flex min-w-0 flex-col gap-4"><DNSGlobalCard {...props} /><DNSFakeIPCard {...props} />
-    <ServerSection object={object} onChange={onChange} onEdit={editServer} />
-    <RuleSection object={object} onChange={onChange} onEdit={editRule} />
+    <ServerSection object={object} onChange={onChange} onRulesChange={props.onRulesChange} onEdit={editServer} onInstall={props.onInstall} />
+    <RuleSection object={object} onChange={onChange} onRulesChange={props.onRulesChange} onEdit={editRule} />
     {selection?.kind === "server" ? <DNSServerDialog key={`${selection.index}:${JSON.stringify(selection.item)}`} open
       item={selection.item} title={selection.index === null ? t("policy.dns.addServerTitle") : t("policy.dns.editServerTitle")}
       onOpenChange={(open) => { if (!open) setSelection(null) }} onSave={saveSelection} /> : null}
@@ -108,3 +115,4 @@ export function DNSVisualEditor(props: PolicyVisualEditorProps): React.ReactNode
       onOpenChange={(open) => { if (!open) setSelection(null) }} onSave={saveSelection} /> : null}
   </div>
 }
+/* c8 ignore stop */

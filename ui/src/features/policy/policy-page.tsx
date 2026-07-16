@@ -165,7 +165,10 @@ function PolicyEditor({
   /* c8 ignore next 3 */
   const saveGlobal = (object: JsonObject) => {
     const initial = isJsonObject(initialSection) ? initialSection : {}
-    onSave({ ...object, rules: initial.rules, rule_set: initial.rule_set })
+    const preserved: JsonObject = section === "route"
+      ? { ...(initial.rules === undefined ? {} : { rules: initial.rules }), ...(initial.rule_set === undefined ? {} : { rule_set: initial.rule_set }) }
+      : { ...(initial.servers === undefined ? {} : { servers: initial.servers }), ...(initial.rules === undefined ? {} : { rules: initial.rules }) }
+    onSave({ ...object, ...preserved })
   }
 
   return (
@@ -186,7 +189,7 @@ function PolicyEditor({
           renderVisual={renderVisual}
           onRulesChange={onRulesChange}
           onInstall={onInstall}
-          onGlobalSave={section === "route" ? saveGlobal : undefined}
+          onGlobalSave={section === "route" || section === "dns" ? saveGlobal : undefined}
         />
       </CardContent>
       <CardFooter className="flex-wrap justify-end gap-2">
@@ -249,8 +252,10 @@ export function PolicyPage({
   /* c8 ignore next 8 */
   const persistRules = (object: JsonObject, metadata: import("@/lib/api/types").RouteRuleMetadata[]) => {
     const current = isJsonObject(initialSection) ? initialSection : {}
-    const route = { ...current, rules: object.rules, rule_set: object.rule_set }
-    save.mutate({ ...query.data!, [section]: route }, {
+    const preserved: JsonObject = section === "route"
+      ? { ...(object.rules === undefined ? {} : { rules: object.rules }), ...(object.rule_set === undefined ? {} : { rule_set: object.rule_set }) }
+      : { ...(object.servers === undefined ? {} : { servers: object.servers }), ...(object.rules === undefined ? {} : { rules: object.rules }) }
+    save.mutate({ ...query.data!, [section]: { ...current, ...preserved } }, {
       onSuccess: async (response) => {
         if (response.status === "rolled_back") { toast.error(t("policy.rolledBack")); return }
         try {
@@ -273,7 +278,7 @@ export function PolicyPage({
       onInstall={installDefaults}
       renderVisual={renderVisual}
       installInVisual={installInVisual}
-      onRulesChange={section === "route" ? persistRules : undefined}
+      onRulesChange={section === "route" || section === "dns" ? persistRules : undefined}
     />
   )
 }

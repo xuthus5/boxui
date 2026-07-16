@@ -17,6 +17,8 @@ import {
 } from "@/features/proxy/outbound-form-model"
 import { ProxyFormFields } from "@/features/proxy/proxy-form-fields"
 import { getPath, type FieldSpec, type JsonObject, setPath } from "@/features/proxy/proxy-form-model"
+import { useConfigQuery } from "@/features/config/config-hooks"
+import { Badge } from "@/components/ui/badge"
 
 interface OutboundEditorDialogProps {
   title: string
@@ -62,6 +64,32 @@ function ManagedGroupAlert() {
   return <Alert><AlertTitle>{t("proxy.outbound.managedGroupTitle")}</AlertTitle><AlertDescription>{t("proxy.outbound.managedGroupDescription")}</AlertDescription></Alert>
 }
 
+function GroupFields({ type, object, onChange }: { type: string; object: JsonObject; onChange: (object: JsonObject) => void }) {
+  const { t } = useTranslation()
+  const config = useConfigQuery()
+  const members = Array.isArray(object.outbounds) ? object.outbounds.filter((item): item is string => typeof item === "string") : []
+  /* c8 ignore next */
+  const candidates = Array.isArray(config.data?.outbounds) ? config.data.outbounds
+    .map((item) => typeof item === "object" && item && !Array.isArray(item) ? String(item.tag ?? "") : "")
+    .filter((tag) => tag && tag !== String(object.tag ?? "") && !members.includes(tag)) : []
+  const setMembers = (next: string[]) => {
+    const nextObject = setPath(object, "outbounds", next.length ? next : undefined)
+    const currentDefault = typeof nextObject.default === "string" ? nextObject.default : ""
+    onChange(currentDefault && next.includes(currentDefault) ? nextObject : setPath(nextObject, "default", undefined))
+  }
+  return <FieldGroup>
+    <Field><FieldLabel>{t("proxy.outbound.groupOutbounds")}</FieldLabel>
+      <Select value={null} onValueChange={(value) => setMembers([...members, String(value)])}>
+        <SelectTrigger aria-label={t("proxy.outbound.groupOutbounds")}><SelectValue placeholder={candidates.length ? (t("proxy.outbound.groupOutbounds") + " +") : "暂无可选成员"} /></SelectTrigger>
+        <SelectContent><SelectGroup>{candidates.map((tag) => <SelectItem key={tag} value={tag}>{tag}</SelectItem>)}</SelectGroup></SelectContent>
+      </Select>
+      <div className="flex flex-wrap gap-2">{members.map((member) => <Badge key={member} variant="secondary">{member}<button type="button" className="ml-1" aria-label={`移除 ${member}`} onClick={() => setMembers(members.filter((item) => item !== member))}>×</button></Badge>)}</div>
+    </Field>
+    {type === "selector" ? <Field><FieldLabel>{t("proxy.outbound.groupDefault")}</FieldLabel><Select value={typeof object.default === "string" ? object.default : null} onValueChange={(value) => onChange(setPath(object, "default", String(value)))}><SelectTrigger aria-label={t("proxy.outbound.groupDefault")}><SelectValue placeholder={t("proxy.outbound.notSet")} /></SelectTrigger><SelectContent><SelectGroup>{members.map((member) => <SelectItem key={member} value={member}>{member}</SelectItem>)}</SelectGroup></SelectContent></Select></Field> : null}
+    <ProxyFormFields fields={groupFields(type).filter((field) => field.path !== "outbounds" && field.path !== "default")} object={object} namespace="proxy.outbound" onChange={onChange} />
+  </FieldGroup>
+}
+
 function FormTabs({ object, value, title, revision, onChange, onJSONChange, onFieldValidityChange }: FormTabsProps) {
   const { t } = useTranslation()
   const type = String(object.type ?? "")
@@ -80,7 +108,7 @@ function FormTabs({ object, value, title, revision, onChange, onJSONChange, onFi
     </TabsList>
     <TabsContent value="basic" className="pt-4"><BaseFields object={object} onChange={onChange} /></TabsContent>
     {dialerTypes.has(type) ? <TabsContent value="dialer" className="pt-4"><ProxyFormFields fields={dialerFields} object={object} namespace="proxy.outbound" onChange={onChange} /></TabsContent> : null}
-    <TabsContent value="protocol" className="pt-4" keepMounted><FieldGroup>{groupTypes.has(type) ? <ManagedGroupAlert /> : null}<ProxyFormFields fields={protocol} object={object} namespace="proxy.outbound" revision={revision} onChange={onChange} onFieldValidityChange={onFieldValidityChange} /></FieldGroup></TabsContent>
+    <TabsContent value="protocol" className="pt-4" keepMounted><FieldGroup>{groupTypes.has(type) ? <ManagedGroupAlert /> : null}{groupTypes.has(type) ? <GroupFields type={type} object={object} onChange={onChange} /> : <ProxyFormFields fields={protocol} object={object} namespace="proxy.outbound" revision={revision} onChange={onChange} onFieldValidityChange={onFieldValidityChange} />}</FieldGroup></TabsContent>
     {outboundTLSTypes.has(type) ? <TabsContent value="tls" className="pt-4"><ProxyFormFields fields={outboundTLSFields} object={object} namespace="proxy.outbound" onChange={onChange} /></TabsContent> : null}
     {hasTransport ? <TabsContent value="transport" className="pt-4" keepMounted><ProxyFormFields fields={[...(outboundTransportTypes.has(type) ? transportTypeFields(transportType) : []), ...(outboundMultiplexTypes.has(type) ? outboundMultiplexFields : [])]} object={object} namespace="proxy.outbound" revision={revision} onChange={onChange} onFieldValidityChange={onFieldValidityChange} transformField={transformField} /></TabsContent> : null}
     <TabsContent value="advanced" className="pt-4"><Field><FieldLabel className="sr-only">{t("proxy.advancedJSON")}</FieldLabel><JsonEditor value={value} onChange={onJSONChange} ariaLabel={`${title} JSON`} /></Field></TabsContent>

@@ -1,6 +1,7 @@
 import { fireEvent, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 import { OutboundEditorDialog } from "@/features/proxy/outbound-editor-dialog"
 import { renderApp } from "@/test/render"
@@ -48,10 +49,13 @@ describe("outbound editor", () => {
   it("edits selector and URLTest groups with a subscription ownership warning", async () => {
     const user = userEvent.setup()
     const onSave = vi.fn()
-    renderApp(<OutboundEditorDialog title="编辑" item={{ type: "selector", outbounds: ["a", "b"] }} onClose={vi.fn()} onSave={onSave} />)
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ outbounds: [{ tag: "a" }, { tag: "b" }, { tag: "c" }] }))))
+    renderApp(<QueryClientProvider client={new QueryClient()}><OutboundEditorDialog title="编辑" item={{ type: "selector", outbounds: ["a", "b"] }} onClose={vi.fn()} onSave={onSave} /></QueryClientProvider>)
     await user.click(screen.getByRole("tab", { name: "分组" }))
     expect(screen.getByText("订阅自动生成的分组请在订阅页面管理")).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText("分组成员"), { target: { value: "a\nb\nc" } })
+    expect(screen.getByText("a")).toBeInTheDocument()
+    await user.click(await screen.findByRole("combobox", { name: "分组成员" }))
+    await user.click(await screen.findByRole("option", { name: "c" }))
     await user.click(screen.getByRole("tab", { name: "基础" }))
     await user.click(screen.getByRole("combobox", { name: "类型" }))
     await user.click(await screen.findByRole("option", { name: "urltest" }))

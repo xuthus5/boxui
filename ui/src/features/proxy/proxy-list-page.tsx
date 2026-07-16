@@ -48,7 +48,7 @@ export function ProxyListPage({ configKey, title, addLabel }: { configKey: "inbo
   }
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between"><h1 className="text-2xl font-semibold">{title}</h1><div className="flex gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><h1 className="text-2xl font-semibold">{title}</h1><div className="grid grid-cols-2 gap-2 sm:flex">
         {configKey === "outbounds" ? <Button variant="outline" onClick={() => api.config.installOutbounds().then(() => query.refetch()).catch((error: Error) => toast.error(error.message))}><WandSparklesIcon data-icon="inline-start" />{t("proxy.installDefaults")}</Button> : null}
         <Button onClick={() => setEditing({ index: -1, item: {} })}><PlusIcon data-icon="inline-start" />{addLabel}</Button>
       </div></div>

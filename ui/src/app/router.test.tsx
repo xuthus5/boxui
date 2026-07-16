@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react"
+import { screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
@@ -20,6 +20,8 @@ describe("application routing", () => {
     renderApp(<App />, "/dashboard")
 
     expect(await screen.findByRole("heading", { name: "仪表盘" })).toBeInTheDocument()
+    expect(screen.getByText("sing-box control plane")).toBeInTheDocument()
+    expect(within(screen.getByRole("banner")).getByText("仪表盘")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "日志" })).toBeInTheDocument()
     expect(screen.queryByRole("link", { name: "内核日志" })).not.toBeInTheDocument()
     expect(screen.queryByRole("link", { name: "应用日志" })).not.toBeInTheDocument()

@@ -24,7 +24,7 @@ export function DashboardPage() {
   const token = useAuth().session!.token
   const [pendingAction, setPendingAction] = useState("")
   const traffic = useStreamBuffer<TrafficEvent>(api.stats.paths.traffic, token, 60)
-  const logs = useStreamBuffer<LogEvent>(api.stats.paths.logs, token, 5)
+  const logs = useStreamBuffer<LogEvent>(api.stats.paths.logs, token, 20)
   const [status, history, memory, version] = useQueries({ queries: [
     { queryKey: ["service"], queryFn: api.service.status, refetchInterval: 5000 },
     { queryKey: ["traffic-history"], queryFn: api.stats.history },

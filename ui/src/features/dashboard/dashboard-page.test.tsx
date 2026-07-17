@@ -20,6 +20,12 @@ function eventStream(data: unknown) {
   })
 }
 
+function eventStreams(items: unknown[]) {
+  return new Response(items.map((item) => `data: ${JSON.stringify(item)}\n\n`).join(""), {
+    headers: { "Content-Type": "text/event-stream" },
+  })
+}
+
 afterEach(() => {
   vi.unstubAllGlobals()
   sessionStore.clear()
@@ -45,5 +51,21 @@ describe("DashboardPage", () => {
     expect(screen.getByText("1.13.14")).toBeInTheDocument()
     expect(await screen.findByText(/下载 20 B\/s/)).toBeInTheDocument()
     expect(screen.getByText("ready")).toBeInTheDocument()
+  })
+
+  it("keeps the latest twenty dashboard logs", async () => {
+    sessionStore.set({ token: "token", expiresAt: "2099-01-01T00:00:00Z" })
+    vi.stubGlobal("fetch", vi.fn((input: string | URL | Request) => {
+      const path = typeof input === "string" ? input : input.toString()
+      if (path === "/api/stats/traffic") return Promise.resolve(eventStream({ upload_bytes: 0, download_bytes: 0, timestamp: "2026-01-01T00:00:01Z" }))
+      if (path === "/api/stats/logs") return Promise.resolve(eventStreams(Array.from({ length: 25 }, (_, index) => ({ level: "info", message: `log-${index}` }))))
+      return Promise.resolve(new Response(JSON.stringify(responseFor(path))))
+    }))
+
+    renderApp(<App />, "/dashboard")
+
+    expect(await screen.findByText("log-24")).toBeInTheDocument()
+    expect(screen.queryByText("log-4")).not.toBeInTheDocument()
+    expect(screen.getAllByText(/^log-/)).toHaveLength(20)
   })
 })

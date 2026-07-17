@@ -19,9 +19,9 @@ export function RecentLogs({ items }: { items: LogEvent[] }) {
       <CardContent>
         {items.length === 0 ? <Empty><EmptyHeader><EmptyTitle>{t("dashboard.noLogs")}</EmptyTitle><EmptyDescription>{t("dashboard.logsWaiting")}</EmptyDescription></EmptyHeader></Empty> : <Table className="table-fixed">
           <TableHeader className="hidden sm:table-header-group"><TableRow><TableHead className="w-28">{t("observability.time")}</TableHead><TableHead className="w-20">{t("dashboard.level")}</TableHead><TableHead>{t("dashboard.message")}</TableHead></TableRow></TableHeader>
-          <TableBody>{items.map((item, index) => <TableRow className="grid grid-cols-[auto_1fr] sm:table-row" key={`${item.timestamp}-${item.level}-${index}`}>
-            <TableCell className="block p-2 pb-1 text-xs whitespace-nowrap text-muted-foreground sm:table-cell sm:p-2 sm:text-sm"><time dateTime={item.timestamp || undefined}>{formatLogTime(item.timestamp)}</time></TableCell>
-            <TableCell className="block justify-self-start p-2 pb-1 sm:table-cell sm:p-2"><Badge variant={item.level === "error" ? "destructive" : "secondary"}>{item.level}</Badge></TableCell>
+          <TableBody>{items.map((item, index) => <TableRow className="grid grid-cols-[auto_1fr] items-center sm:table-row" key={`${item.timestamp}-${item.level}-${index}`}>
+            <TableCell className="flex min-h-9 items-center px-2 py-1 text-xs whitespace-nowrap text-muted-foreground sm:table-cell sm:p-2 sm:text-sm"><time dateTime={item.timestamp || undefined}>{formatLogTime(item.timestamp)}</time></TableCell>
+            <TableCell className="flex min-h-9 items-center justify-self-start px-2 py-1 sm:table-cell sm:p-2"><Badge variant={item.level === "error" ? "destructive" : "secondary"}>{item.level}</Badge></TableCell>
             <TableCell className="col-span-2 block p-2 pt-1 whitespace-normal break-words sm:table-cell sm:p-2">{item.message}</TableCell>
           </TableRow>)}</TableBody>
         </Table>}

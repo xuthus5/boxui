@@ -74,5 +74,6 @@ describe("dashboard component states", () => {
     expect(screen.getByRole("columnheader", { name: "时间" })).toBeInTheDocument()
     expect(document.querySelector("time")).toHaveAttribute("datetime", "2026-01-01T00:00:00Z")
     expect(screen.getByText("ready").closest("td")).toHaveClass("col-span-2", "sm:table-cell")
+    expect(document.querySelector("time")?.closest("td")).toHaveClass("items-center", "min-h-9")
   })
 })

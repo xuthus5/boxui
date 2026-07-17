@@ -43,7 +43,7 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("运行中")).toBeInTheDocument()
     expect(screen.getByText("1.00 KB")).toBeInTheDocument()
     expect(screen.getByText("1.13.14")).toBeInTheDocument()
-    expect(await screen.findByText(/下载 40 B/)).toBeInTheDocument()
+    expect(await screen.findByText(/下载 20 B\/s/)).toBeInTheDocument()
     expect(screen.getByText("ready")).toBeInTheDocument()
   })
 })

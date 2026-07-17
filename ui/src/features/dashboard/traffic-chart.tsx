@@ -1,36 +1,57 @@
+import { useState } from "react"
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
 import { useTranslation } from "react-i18next"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatBytes } from "@/features/dashboard/format"
+import { calculateTrafficRates } from "@/features/dashboard/traffic-rate"
 import type { TrafficHistoryPoint } from "@/lib/api/types"
+
+function formatRate(value: number) {
+  return `${formatBytes(value)}/s`
+}
+
+function TrafficLines({ data, uploadKey, downloadKey, formatter, config }: { data: object[]; uploadKey: string; downloadKey: string; formatter: (value: number) => string; config: ChartConfig }) {
+  return <ChartContainer config={config} className="h-64 w-full"><LineChart accessibilityLayer data={data}>
+    <CartesianGrid vertical={false} />
+    <YAxis width={72} tickLine={false} axisLine={false} tickFormatter={(value: number) => formatter(value)} />
+    <XAxis dataKey="timestamp" tickLine={false} axisLine={false} tickFormatter={(value: string) => new Date(value).toLocaleTimeString()} />
+    <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatter(Number(value))} />} />
+    <Line dataKey={uploadKey} type="monotone" stroke={`var(--color-${uploadKey})`} dot={false} />
+    <Line dataKey={downloadKey} type="monotone" stroke={`var(--color-${downloadKey})`} dot={false} />
+  </LineChart></ChartContainer>
+}
 
 export function TrafficChart({ points }: { points: TrafficHistoryPoint[] }) {
   const { t } = useTranslation()
-  const chartConfig = {
+  const [mode, setMode] = useState<"rate" | "total">("rate")
+  const rates = calculateTrafficRates(points)
+  const totalConfig = {
     upload_bytes: { label: t("dashboard.upload"), color: "var(--chart-2)" },
     download_bytes: { label: t("dashboard.download"), color: "var(--chart-1)" },
   } satisfies ChartConfig
-  const latest = points.at(-1)
+  const rateConfig = {
+    upload_rate: { label: t("dashboard.upload"), color: "var(--chart-2)" },
+    download_rate: { label: t("dashboard.download"), color: "var(--chart-1)" },
+  } satisfies ChartConfig
+  const latestTotal = points.at(-1)
+  const latestRate = rates.at(-1)
+  const description = mode === "rate"
+    ? `${t("dashboard.upload")} ${formatRate(latestRate?.upload_rate ?? 0)} · ${t("dashboard.download")} ${formatRate(latestRate?.download_rate ?? 0)}`
+    : `${t("dashboard.upload")} ${formatBytes(latestTotal?.upload_bytes ?? 0)} · ${t("dashboard.download")} ${formatBytes(latestTotal?.download_bytes ?? 0)}`
   return (
     <Card className="lg:col-span-2">
-      <CardHeader>
+      <Tabs value={mode} onValueChange={(value) => setMode(String(value) as "rate" | "total")}>
+      <CardHeader className="gap-3">
         <CardTitle>{t("dashboard.traffic")}</CardTitle>
-        <CardDescription>{t("dashboard.upload")} {formatBytes(latest?.upload_bytes ?? 0)} · {t("dashboard.download")} {formatBytes(latest?.download_bytes ?? 0)}</CardDescription>
+        <CardDescription>{description}</CardDescription>
+        <TabsList><TabsTrigger value="rate">{t("dashboard.realtimeRate")}</TabsTrigger><TabsTrigger value="total">{t("dashboard.cumulativeTraffic")}</TabsTrigger></TabsList>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-64 w-full">
-          <LineChart accessibilityLayer data={points}>
-            <CartesianGrid vertical={false} />
-            <YAxis width={72} tickLine={false} axisLine={false} tickFormatter={(value: number) => formatBytes(value)} />
-            <XAxis dataKey="timestamp" tickLine={false} axisLine={false} tickFormatter={(value: string) => new Date(value).toLocaleTimeString()} />
-            <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatBytes(Number(value))} />} />
-            <Line dataKey="upload_bytes" type="monotone" stroke="var(--color-upload_bytes)" dot={false} />
-            <Line dataKey="download_bytes" type="monotone" stroke="var(--color-download_bytes)" dot={false} />
-          </LineChart>
-        </ChartContainer>
-      </CardContent>
+      <TabsContent value="rate"><CardContent><TrafficLines data={rates} uploadKey="upload_rate" downloadKey="download_rate" formatter={formatRate} config={rateConfig} /></CardContent></TabsContent>
+      <TabsContent value="total"><CardContent><TrafficLines data={points} uploadKey="upload_bytes" downloadKey="download_bytes" formatter={formatBytes} config={totalConfig} /></CardContent></TabsContent>
+      </Tabs>
     </Card>
   )
 }

@@ -9,15 +9,30 @@ import { RecentLogs } from "@/features/dashboard/recent-logs"
 import { renderApp } from "@/test/render"
 
 describe("dashboard component states", () => {
-  it("shows a stopped service and pending action", async () => {
+  it("enables only valid service actions for a stopped service", async () => {
     const onAction = vi.fn()
     const user = userEvent.setup()
-    renderApp(<ServiceCard status={{ running: false }} pending="restart" onAction={onAction} />)
+    renderApp(<ServiceCard status={{ running: false }} onAction={onAction} />)
     expect(screen.getByText("已停止")).toBeInTheDocument()
     expect(screen.getByText("—")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "停止" })).toBeDisabled()
     expect(screen.getByRole("button", { name: /重启/ })).toBeDisabled()
     await user.click(screen.getByRole("button", { name: "启动" }))
-    expect(onAction).not.toHaveBeenCalled()
+    expect(onAction).toHaveBeenCalledWith("start")
+  })
+
+  it("disables start while the service is running", () => {
+    renderApp(<ServiceCard status={{ running: true, uptime: "1m" }} onAction={vi.fn()} />)
+    expect(screen.getByRole("button", { name: "启动" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "停止" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: /重启/ })).toBeEnabled()
+  })
+
+  it("disables service actions while an operation is pending", () => {
+    renderApp(<ServiceCard status={{ running: true }} pending="restart" onAction={vi.fn()} />)
+    expect(screen.getByRole("button", { name: "启动" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "停止" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /重启/ })).toBeDisabled()
   })
 
   it("renders an empty traffic chart", () => {

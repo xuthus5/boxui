@@ -14,12 +14,12 @@ interface ServiceCardProps {
   onAction: (action: "start" | "stop" | "restart") => void
 }
 
-function ActionButton({ action, pending, onAction }: Omit<ServiceCardProps, "status"> & { action: "start" | "stop" | "restart" }) {
+function ActionButton({ action, pending, disabled, onAction }: Omit<ServiceCardProps, "status"> & { action: "start" | "stop" | "restart"; disabled?: boolean }) {
   const { t } = useTranslation()
   const labels = { start: t("dashboard.start"), stop: t("dashboard.stop"), restart: t("dashboard.restart") }
   const icons = { start: PlayIcon, stop: PauseIcon, restart: RotateCcwIcon }
   const Icon = icons[action]
-  const button = <Button variant={action === "stop" ? "destructive" : "outline"} size="sm" disabled={Boolean(pending)} onClick={action === "start" ? () => onAction(action) : undefined}>
+  const button = <Button variant={action === "stop" ? "destructive" : "outline"} size="sm" disabled={Boolean(pending) || disabled} onClick={action === "start" ? () => onAction(action) : undefined}>
       {pending === action ? <Spinner aria-hidden="true" data-icon="inline-start" /> : <Icon data-icon="inline-start" />}
       {labels[action]}
     </Button>
@@ -40,9 +40,9 @@ export function ServiceCard({ status, pending, onAction }: ServiceCardProps) {
         <span className="text-muted-foreground">{status.uptime || "—"}</span>
       </CardContent>
       <CardFooter className="flex gap-2">
-        <ActionButton action="start" pending={pending} onAction={onAction} />
-        <ActionButton action="stop" pending={pending} onAction={onAction} />
-        <ActionButton action="restart" pending={pending} onAction={onAction} />
+        <ActionButton action="start" pending={pending} disabled={status.running} onAction={onAction} />
+        <ActionButton action="stop" pending={pending} disabled={!status.running} onAction={onAction} />
+        <ActionButton action="restart" pending={pending} disabled={!status.running} onAction={onAction} />
       </CardFooter>
     </Card>
   )

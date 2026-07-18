@@ -69,7 +69,10 @@ function BooleanField({ label, namespace, labelKey, checked, onChange }: { label
 function SelectField({ field, label, namespace, value, onChange }: { field: FieldSpec; label: string; namespace: ProxyFormFieldsProps["namespace"]; value: string; onChange: (value: string) => void }) {
   const { t } = useTranslation()
   const id = useId()
-  const options = useMemo(() => field.options?.filter(Boolean) ?? [], [field.options])
+  const options = useMemo(() => {
+    const base = field.options?.filter(Boolean) ?? []
+    return value && !base.includes(value) ? [value, ...base] : base
+  }, [field.options, value])
   const unset = "__unset__"
   const optionLabel = useCallback((option: string) => option === "true" ? t(`${namespace}.enabled`) : option === "false" ? t(`${namespace}.disabled`) : option, [namespace, t])
   const items = useMemo(() => [{ value: unset, label: t(`${namespace}.notSet`) }, ...options.map((option) => ({ value: option, label: optionLabel(option) }))], [namespace, optionLabel, options, t])

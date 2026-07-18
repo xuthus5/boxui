@@ -15,6 +15,13 @@ import { renderApp } from "@/test/render"
 afterEach(() => vi.unstubAllGlobals())
 
 describe("inbound form model", () => {
+  it("uses preset TLS version options", () => {
+    const min = tlsFields.find((field) => field.path === "tls.min_version")
+    const max = tlsFields.find((field) => field.path === "tls.max_version")
+    expect(min).toEqual(expect.objectContaining({ kind: "select", options: ["1.0", "1.1", "1.2", "1.3"] }))
+    expect(max).toEqual(expect.objectContaining({ kind: "select", options: ["1.0", "1.1", "1.2", "1.3"] }))
+  })
+
   it("reads, writes, and prunes nested values", () => {
     expect(getPath({ tls: { enabled: true } }, "tls.enabled")).toBe(true)
     expect(getPath({ tls: [] }, "tls.enabled")).toBeUndefined()

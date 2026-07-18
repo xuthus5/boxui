@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  changeOutboundTransportType, changeOutboundType, dialerFields, groupFields, outboundTypes,
-  protocolFields, serverTypes, transportTypeFields,
+  applyOutboundFieldChange, changeOutboundTransportType, changeOutboundType, dialerFields, groupFields,
+  outboundTLSFields, outboundTypes, protocolFields, serverTypes, transportTypeFields,
 } from "@/features/proxy/outbound-form-model"
+import { isFieldVisible } from "@/features/proxy/proxy-form-model"
 
 describe("outbound form metadata", () => {
   it("lists supported outbound types and excludes removed types", () => {
@@ -17,9 +18,18 @@ describe("outbound form metadata", () => {
 
   it("models dialer, protocol, and group JSON value types", () => {
     expect(dialerFields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ path: "domain_resolver.server" }),
+      expect.objectContaining({ path: "detour", kind: "ref", ref: "outbound" }),
+      expect.objectContaining({ path: "domain_resolver.server", kind: "ref", ref: "dns-server" }),
       expect.objectContaining({ path: "network_strategy", kind: "select" }),
       expect.objectContaining({ path: "udp_fragment", kind: "select" }),
+    ]))
+    expect(protocolFields("shadowsocks")).toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: "method", kind: "select" }),
+      expect.objectContaining({ path: "network", kind: "network-multi" }),
+    ]))
+    expect(outboundTLSFields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: "tls.min_version", kind: "select", options: ["1.0", "1.1", "1.2", "1.3"] }),
+      expect.objectContaining({ path: "tls.max_version", kind: "select", options: ["1.0", "1.1", "1.2", "1.3"] }),
     ]))
     expect(protocolFields("http")).toEqual(expect.arrayContaining([expect.objectContaining({ path: "headers", kind: "json-object" })]))
     expect(protocolFields("tor")).toEqual(expect.arrayContaining([expect.objectContaining({ path: "torrc", kind: "json-object" })]))
@@ -144,5 +154,31 @@ describe("outbound field compatibility branches", () => {
     expect(changeOutboundType({
       type: "socks", headers: ["bad"] as never, username: "u", password: "p",
     }, "http")).toEqual({ type: "http" })
+  })
+})
+
+describe("outbound hierarchical visibility", () => {
+  it("hides nested TLS and multiplex fields until parents are enabled", () => {
+    const off = { type: "vless", tls: { enabled: false }, multiplex: { enabled: false } }
+    expect(isFieldVisible(off, outboundTLSFields.find((field) => field.path === "tls.server_name")!)).toBe(false)
+    expect(isFieldVisible(off, outboundTLSFields.find((field) => field.path === "tls.utls.fingerprint")!)).toBe(false)
+    const on = { type: "vless", tls: { enabled: true, utls: { enabled: true }, reality: { enabled: true } }, multiplex: { enabled: true, brutal: { enabled: true } } }
+    expect(isFieldVisible(on, outboundTLSFields.find((field) => field.path === "tls.server_name")!)).toBe(true)
+    expect(isFieldVisible(on, outboundTLSFields.find((field) => field.path === "tls.utls.fingerprint")!)).toBe(true)
+    expect(isFieldVisible(on, outboundTLSFields.find((field) => field.path === "tls.reality.public_key")!)).toBe(true)
+  })
+
+  it("prunes invisible nested values when parent switches turn off", () => {
+    const current = {
+      type: "vless",
+      tls: { enabled: true, server_name: "example.com", utls: { enabled: true, fingerprint: "chrome" }, reality: { enabled: true, public_key: "pk" } },
+      multiplex: { enabled: true, protocol: "smux", brutal: { enabled: true, up_mbps: 10 } },
+      udp_over_tcp: { enabled: true, version: 2 },
+    }
+    expect(applyOutboundFieldChange(current, {
+      ...current,
+      tls: { enabled: false, server_name: "example.com", utls: { enabled: true, fingerprint: "chrome" } },
+      multiplex: { enabled: false, protocol: "smux", brutal: { enabled: true, up_mbps: 10 } },
+    })).toEqual({ type: "vless", tls: { enabled: false }, multiplex: { enabled: false }, udp_over_tcp: { enabled: true, version: 2 } })
   })
 })

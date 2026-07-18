@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { getPath, type FieldSpec, type FieldTransform, type JsonObject, setPath } from "@/features/proxy/proxy-form-model"
+import { getPath, type FieldSpec, type FieldTransform, type JsonObject, setPath, visibleFields } from "@/features/proxy/proxy-form-model"
 import { api } from "@/lib/api/endpoints"
 import type { JsonValue, NetworkInterfaceInfo } from "@/lib/api/types"
 
@@ -252,6 +252,7 @@ function ProxyField({ field, object, namespace, revision, onChange, onFieldValid
 }
 
 export function ProxyFormFields(props: ProxyFormFieldsProps) {
-  const { fields, ...rest } = props
-  return <FieldGroup className="grid gap-4 sm:grid-cols-2">{fields.map((field) => <ProxyField key={field.path} field={field} {...rest} />)}</FieldGroup>
+  const { fields, object, ...rest } = props
+  const shown = visibleFields(fields, object)
+  return <FieldGroup className="grid gap-4 sm:grid-cols-2">{shown.map((field) => <ProxyField key={field.path} field={field} object={object} {...rest} />)}</FieldGroup>
 }

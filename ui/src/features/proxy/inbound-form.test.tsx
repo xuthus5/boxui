@@ -6,8 +6,9 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { InboundFormFields } from "@/features/proxy/inbound-form-fields"
 import {
-  changeInboundType, changeTransportType, getPath, protocolFields, setPath, transportTypeFields, type FieldSpec, type JsonObject,
+  applyInboundFieldChange, changeInboundType, changeTransportType, getPath, protocolFields, setPath, tlsFields, transportTypeFields, type FieldSpec, type JsonObject,
 } from "@/features/proxy/inbound-form-model"
+import { isFieldVisible, pruneInvisibleFields } from "@/features/proxy/proxy-form-model"
 import { ProxyFormFields } from "@/features/proxy/proxy-form-fields"
 import { renderApp } from "@/test/render"
 
@@ -252,5 +253,54 @@ describe("inbound bind interface field", () => {
     await user.click(await screen.findByRole("option", { name: "手动输入" }))
     fireEvent.change(screen.getByLabelText("自定义网卡名称"), { target: { value: "eth0" } })
     expect(onChange).toHaveBeenLastCalledWith({ bind_interface: "eth0" })
+  })
+})
+
+describe("inbound hierarchical fields", () => {
+  it("hides TLS child fields until TLS is enabled and prunes them when disabled", async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    const view = renderApp(<InboundFormFields fields={tlsFields} object={{ tls: { enabled: true, server_name: "example.com", reality: { enabled: true, private_key: "k" } } }} type="vless" onChange={onChange} />)
+    expect(screen.getByLabelText("服务器名称")).toHaveValue("example.com")
+    expect(screen.getByLabelText("Reality 私钥")).toHaveValue("k")
+    await user.click(screen.getByRole("switch", { name: "启用 TLS" }))
+    expect(onChange).toHaveBeenLastCalledWith({})
+    view.unmount()
+
+    const off = renderApp(<InboundFormFields fields={tlsFields} object={{}} type="vless" onChange={onChange} />)
+    expect(screen.queryByLabelText("服务器名称")).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("Reality 私钥")).not.toBeInTheDocument()
+    off.unmount()
+  })
+
+  it("shows ACME details only after domain is set and keep-alive fields respect disable switch", async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    renderApp(<InboundFormFields fields={tlsFields} object={{ tls: { enabled: true, acme: { domain: ["a.com"], email: "a@b.com" } } }} type="trojan" onChange={onChange} />)
+    expect(screen.getByLabelText("ACME 邮箱")).toHaveValue("a@b.com")
+    fireEvent.change(screen.getByLabelText("ACME 域名"), { target: { value: "" } })
+    expect(onChange).toHaveBeenLastCalledWith({ tls: { enabled: true } })
+    cleanup()
+
+    const keep = renderApp(<InboundFormFields fields={[{ path: "disable_tcp_keep_alive", label: "disableTCPKeepAlive", kind: "boolean" }, { path: "tcp_keep_alive", label: "tcpKeepAlive", when: { path: "disable_tcp_keep_alive", falsy: true } }, { path: "tcp_keep_alive_interval", label: "tcpKeepAliveInterval", when: { path: "disable_tcp_keep_alive", falsy: true } }]} object={{ tcp_keep_alive: "5m", tcp_keep_alive_interval: "30s" }} type="mixed" onChange={onChange} />)
+    expect(screen.getByLabelText("TCP Keep Alive")).toHaveValue("5m")
+    await user.click(screen.getByRole("switch", { name: "禁用 TCP Keep Alive" }))
+    expect(onChange).toHaveBeenLastCalledWith({ disable_tcp_keep_alive: true })
+    keep.unmount()
+  })
+
+  it("prunes nested invisible fields through helpers", () => {
+    const pruned = pruneInvisibleFields({
+      tls: { enabled: false, server_name: "x", reality: { enabled: true, private_key: "k" } },
+      multiplex: { enabled: false, padding: true, brutal: { enabled: true, up_mbps: 100 } },
+    }, tlsFields.concat([
+      { path: "multiplex.enabled", label: "multiplexEnabled", kind: "boolean" },
+      { path: "multiplex.padding", label: "multiplexPadding", kind: "boolean", when: { path: "multiplex.enabled", is: true } },
+      { path: "multiplex.brutal.enabled", label: "brutalEnabled", kind: "boolean", when: { path: "multiplex.enabled", is: true } },
+      { path: "multiplex.brutal.up_mbps", label: "uploadMbps", kind: "number", when: [{ path: "multiplex.enabled", is: true }, { path: "multiplex.brutal.enabled", is: true }] },
+    ]))
+    expect(pruned).toEqual({ tls: { enabled: false }, multiplex: { enabled: false } })
+    expect(isFieldVisible({ tls: { enabled: true } }, tlsFields[1])).toBe(true)
+    expect(applyInboundFieldChange({}, { disable_tcp_keep_alive: true, tcp_keep_alive: "5m" }, "mixed")).toEqual({ disable_tcp_keep_alive: true })
   })
 })

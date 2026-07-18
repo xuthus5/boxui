@@ -1,6 +1,6 @@
-import { getPath, type FieldSpec, type JsonObject, setPath } from "@/features/proxy/proxy-form-model"
+import { getPath, pruneInvisibleFields, type FieldSpec, type JsonObject, setPath, visibleFields } from "@/features/proxy/proxy-form-model"
 
-export { getPath, setPath }
+export { getPath, pruneInvisibleFields, setPath, visibleFields }
 export type { FieldSpec, JsonObject }
 
 export const inboundTypes = [
@@ -13,8 +13,10 @@ export const listenFields: FieldSpec[] = [
   { path: "bind_interface", label: "bindInterface", kind: "network-interface" }, { path: "routing_mark", label: "routingMark" },
   { path: "reuse_addr", label: "reuseAddress", kind: "boolean" }, { path: "netns", label: "networkNamespace" },
   { path: "tcp_fast_open", label: "tcpFastOpen", kind: "boolean" }, { path: "tcp_multi_path", label: "tcpMultiPath", kind: "boolean" },
-  { path: "disable_tcp_keep_alive", label: "disableTCPKeepAlive", kind: "boolean" }, { path: "tcp_keep_alive", label: "tcpKeepAlive" },
-  { path: "tcp_keep_alive_interval", label: "tcpKeepAliveInterval" }, { path: "udp_fragment", label: "udpFragment", kind: "select", options: ["true", "false"] },
+  { path: "disable_tcp_keep_alive", label: "disableTCPKeepAlive", kind: "boolean" },
+  { path: "tcp_keep_alive", label: "tcpKeepAlive", when: { path: "disable_tcp_keep_alive", falsy: true } },
+  { path: "tcp_keep_alive_interval", label: "tcpKeepAliveInterval", when: { path: "disable_tcp_keep_alive", falsy: true } },
+  { path: "udp_fragment", label: "udpFragment", kind: "select", options: ["true", "false"] },
   { path: "udp_timeout", label: "udpTimeout" }, { path: "detour", label: "detour" },
 ]
 
@@ -30,7 +32,7 @@ const protocolMap: Record<string, FieldSpec[]> = {
   trojan: [{ path: "users", label: "users", kind: "users" }],
   naive: [{ path: "users", label: "users", kind: "users" }, network, { path: "quic_congestion_control", label: "congestionControl" }],
   hysteria: [{ path: "up", label: "uploadBandwidth" }, { path: "up_mbps", label: "uploadMbps", kind: "number" }, { path: "down", label: "downloadBandwidth" }, { path: "down_mbps", label: "downloadMbps", kind: "number" }, { path: "obfs", label: "obfuscation" }, { path: "users", label: "users", kind: "users" }, { path: "recv_window_conn", label: "receiveWindowConnection", kind: "number" }, { path: "recv_window_client", label: "receiveWindowClient", kind: "number" }, { path: "max_conn_client", label: "maxClientConnections", kind: "number" }, { path: "disable_mtu_discovery", label: "disableMTUDiscovery", kind: "boolean" }],
-  hysteria2: [{ path: "up_mbps", label: "uploadMbps", kind: "number" }, { path: "down_mbps", label: "downloadMbps", kind: "number" }, { path: "obfs.type", label: "obfuscationType", kind: "select", options: ["", "salamander"] }, { path: "obfs.password", label: "obfuscationPassword" }, { path: "users", label: "users", kind: "users" }, { path: "ignore_client_bandwidth", label: "ignoreClientBandwidth", kind: "boolean" }, { path: "masquerade", label: "masquerade" }, { path: "brutal_debug", label: "brutalDebug", kind: "boolean" }],
+  hysteria2: [{ path: "up_mbps", label: "uploadMbps", kind: "number" }, { path: "down_mbps", label: "downloadMbps", kind: "number" }, { path: "obfs.type", label: "obfuscationType", kind: "select", options: ["", "salamander"] }, { path: "obfs.password", label: "obfuscationPassword", when: { path: "obfs.type", is: "salamander" } }, { path: "users", label: "users", kind: "users" }, { path: "ignore_client_bandwidth", label: "ignoreClientBandwidth", kind: "boolean" }, { path: "masquerade", label: "masquerade" }, { path: "brutal_debug", label: "brutalDebug", kind: "boolean" }],
   tuic: [{ path: "users", label: "users", kind: "users" }, { path: "congestion_control", label: "congestionControl" }, { path: "auth_timeout", label: "authenticationTimeout" }, { path: "zero_rtt_handshake", label: "zeroRTTHandshake", kind: "boolean" }, { path: "heartbeat", label: "heartbeat" }],
   shadowtls: [{ path: "version", label: "version", kind: "number" }, { path: "password", label: "password" }, { path: "users", label: "users", kind: "users" }, { path: "handshake.server", label: "handshakeServer" }, { path: "handshake.server_port", label: "handshakePort", kind: "number" }, { path: "strict_mode", label: "strictMode", kind: "boolean" }, { path: "wildcard_sni", label: "wildcardSNI", kind: "select", options: ["", "off", "authed", "all"] }],
   anytls: [{ path: "users", label: "users", kind: "users" }, { path: "padding_scheme", label: "paddingScheme" }],
@@ -40,10 +42,10 @@ const protocolMap: Record<string, FieldSpec[]> = {
 export const tunFields: FieldSpec[] = [
   { path: "interface_name", label: "interfaceName" }, { path: "mtu", label: "mtu", kind: "number" }, { path: "address", label: "tunAddress", kind: "list" },
   { path: "stack", label: "stack", kind: "select", options: ["", "system", "gvisor", "mixed"] }, { path: "auto_route", label: "autoRoute", kind: "boolean" },
-  { path: "iproute2_table_index", label: "ipRouteTableIndex", kind: "number" }, { path: "iproute2_rule_index", label: "ipRouteRuleIndex", kind: "number" },
-  { path: "auto_redirect", label: "autoRedirect", kind: "boolean" }, { path: "auto_redirect_input_mark", label: "autoRedirectInputMark" },
-  { path: "auto_redirect_output_mark", label: "autoRedirectOutputMark" }, { path: "auto_redirect_reset_mark", label: "autoRedirectResetMark" },
-  { path: "auto_redirect_nfqueue", label: "autoRedirectNFQueue", kind: "number" }, { path: "auto_redirect_iproute2_fallback_rule_index", label: "autoRedirectFallbackRuleIndex", kind: "number" },
+  { path: "iproute2_table_index", label: "ipRouteTableIndex", kind: "number", when: { path: "auto_route", is: true } }, { path: "iproute2_rule_index", label: "ipRouteRuleIndex", kind: "number", when: { path: "auto_route", is: true } },
+  { path: "auto_redirect", label: "autoRedirect", kind: "boolean" }, { path: "auto_redirect_input_mark", label: "autoRedirectInputMark", when: { path: "auto_redirect", is: true } },
+  { path: "auto_redirect_output_mark", label: "autoRedirectOutputMark", when: { path: "auto_redirect", is: true } }, { path: "auto_redirect_reset_mark", label: "autoRedirectResetMark", when: { path: "auto_redirect", is: true } },
+  { path: "auto_redirect_nfqueue", label: "autoRedirectNFQueue", kind: "number", when: { path: "auto_redirect", is: true } }, { path: "auto_redirect_iproute2_fallback_rule_index", label: "autoRedirectFallbackRuleIndex", kind: "number", when: { path: "auto_redirect", is: true } },
   { path: "loopback_address", label: "loopbackAddress", kind: "list" }, { path: "strict_route", label: "strictRoute", kind: "boolean" },
   { path: "route_address", label: "routeAddress", kind: "list" }, { path: "route_address_set", label: "routeAddressSet", kind: "list" },
   { path: "route_exclude_address", label: "routeExcludeAddress", kind: "list" }, { path: "route_exclude_address_set", label: "routeExcludeAddressSet", kind: "list" },
@@ -54,24 +56,49 @@ export const tunFields: FieldSpec[] = [
   { path: "udp_timeout", label: "udpTimeout" }, { path: "exclude_mptcp", label: "excludeMPTCP", kind: "boolean" },
 ]
 
+const tlsOn = { path: "tls.enabled", is: true } as const
+const clientAuthOn = [tlsOn, { path: "tls.client_authentication", is: ["request", "require-any", "verify-if-given", "require-and-verify"] }] as const
+const acmeOn = [tlsOn, { path: "tls.acme.domain" }] as const
+const echOn = [tlsOn, { path: "tls.ech.enabled", is: true }] as const
+const realityOn = [tlsOn, { path: "tls.reality.enabled", is: true }] as const
+
 export const tlsFields: FieldSpec[] = [
-  { path: "tls.enabled", label: "tlsEnabled", kind: "boolean" }, { path: "tls.server_name", label: "serverName" },
-  { path: "tls.insecure", label: "insecure", kind: "boolean" }, { path: "tls.alpn", label: "alpn", kind: "list" },
-  { path: "tls.min_version", label: "minimumTLSVersion" }, { path: "tls.max_version", label: "maximumTLSVersion" },
-  { path: "tls.cipher_suites", label: "cipherSuites", kind: "list" }, { path: "tls.curve_preferences", label: "curvePreferences", kind: "list" },
-  { path: "tls.certificate", label: "certificate", kind: "textarea" }, { path: "tls.certificate_path", label: "certificatePath" },
-  { path: "tls.key", label: "privateKey", kind: "textarea" }, { path: "tls.key_path", label: "keyPath" },
-  { path: "tls.client_authentication", label: "clientAuthentication", kind: "select", options: ["no", "request", "require-any", "verify-if-given", "require-and-verify"] },
-  { path: "tls.client_certificate", label: "clientCertificate", kind: "textarea" }, { path: "tls.client_certificate_path", label: "clientCertificatePath", kind: "list" },
-  { path: "tls.client_certificate_public_key_sha256", label: "clientCertificateSHA256", kind: "list" }, { path: "tls.kernel_tx", label: "kernelTX", kind: "boolean" }, { path: "tls.kernel_rx", label: "kernelRX", kind: "boolean" },
-  { path: "tls.acme.domain", label: "acmeDomain", kind: "list" }, { path: "tls.acme.data_directory", label: "acmeDataDirectory" },
-  { path: "tls.acme.default_server_name", label: "acmeDefaultServerName" }, { path: "tls.acme.email", label: "acmeEmail" }, { path: "tls.acme.provider", label: "acmeProvider" },
-  { path: "tls.acme.disable_http_challenge", label: "disableHTTPChallenge", kind: "boolean" }, { path: "tls.acme.disable_tls_alpn_challenge", label: "disableTLSALPNChallenge", kind: "boolean" },
-  { path: "tls.acme.alternative_http_port", label: "alternativeHTTPPort", kind: "number" }, { path: "tls.acme.alternative_tls_port", label: "alternativeTLSPort", kind: "number" },
-  { path: "tls.ech.enabled", label: "echEnabled", kind: "boolean" }, { path: "tls.ech.key", label: "echKey", kind: "list" }, { path: "tls.ech.key_path", label: "echKeyPath" },
-  { path: "tls.reality.enabled", label: "realityEnabled", kind: "boolean" }, { path: "tls.reality.handshake.server", label: "realityHandshakeServer" },
-  { path: "tls.reality.handshake.server_port", label: "realityHandshakePort", kind: "number" }, { path: "tls.reality.private_key", label: "realityPrivateKey" },
-  { path: "tls.reality.short_id", label: "realityShortID", kind: "list" }, { path: "tls.reality.max_time_difference", label: "realityMaxTimeDifference" },
+  { path: "tls.enabled", label: "tlsEnabled", kind: "boolean" },
+  { path: "tls.server_name", label: "serverName", when: tlsOn },
+  { path: "tls.insecure", label: "insecure", kind: "boolean", when: tlsOn },
+  { path: "tls.alpn", label: "alpn", kind: "list", when: tlsOn },
+  { path: "tls.min_version", label: "minimumTLSVersion", when: tlsOn },
+  { path: "tls.max_version", label: "maximumTLSVersion", when: tlsOn },
+  { path: "tls.cipher_suites", label: "cipherSuites", kind: "list", when: tlsOn },
+  { path: "tls.curve_preferences", label: "curvePreferences", kind: "list", when: tlsOn },
+  { path: "tls.certificate", label: "certificate", kind: "textarea", when: tlsOn },
+  { path: "tls.certificate_path", label: "certificatePath", when: tlsOn },
+  { path: "tls.key", label: "privateKey", kind: "textarea", when: tlsOn },
+  { path: "tls.key_path", label: "keyPath", when: tlsOn },
+  { path: "tls.client_authentication", label: "clientAuthentication", kind: "select", options: ["no", "request", "require-any", "verify-if-given", "require-and-verify"], when: tlsOn },
+  { path: "tls.client_certificate", label: "clientCertificate", kind: "textarea", when: [...clientAuthOn] },
+  { path: "tls.client_certificate_path", label: "clientCertificatePath", kind: "list", when: [...clientAuthOn] },
+  { path: "tls.client_certificate_public_key_sha256", label: "clientCertificateSHA256", kind: "list", when: [...clientAuthOn] },
+  { path: "tls.kernel_tx", label: "kernelTX", kind: "boolean", when: tlsOn },
+  { path: "tls.kernel_rx", label: "kernelRX", kind: "boolean", when: tlsOn },
+  { path: "tls.acme.domain", label: "acmeDomain", kind: "list", when: tlsOn },
+  { path: "tls.acme.data_directory", label: "acmeDataDirectory", when: [...acmeOn] },
+  { path: "tls.acme.default_server_name", label: "acmeDefaultServerName", when: [...acmeOn] },
+  { path: "tls.acme.email", label: "acmeEmail", when: [...acmeOn] },
+  { path: "tls.acme.provider", label: "acmeProvider", when: [...acmeOn] },
+  { path: "tls.acme.disable_http_challenge", label: "disableHTTPChallenge", kind: "boolean", when: [...acmeOn] },
+  { path: "tls.acme.disable_tls_alpn_challenge", label: "disableTLSALPNChallenge", kind: "boolean", when: [...acmeOn] },
+  { path: "tls.acme.alternative_http_port", label: "alternativeHTTPPort", kind: "number", when: [...acmeOn] },
+  { path: "tls.acme.alternative_tls_port", label: "alternativeTLSPort", kind: "number", when: [...acmeOn] },
+  { path: "tls.ech.enabled", label: "echEnabled", kind: "boolean", when: tlsOn },
+  { path: "tls.ech.key", label: "echKey", kind: "list", when: [...echOn] },
+  { path: "tls.ech.key_path", label: "echKeyPath", when: [...echOn] },
+  { path: "tls.reality.enabled", label: "realityEnabled", kind: "boolean", when: tlsOn },
+  { path: "tls.reality.handshake.server", label: "realityHandshakeServer", when: [...realityOn] },
+  { path: "tls.reality.handshake.server_port", label: "realityHandshakePort", kind: "number", when: [...realityOn] },
+  { path: "tls.reality.private_key", label: "realityPrivateKey", when: [...realityOn] },
+  { path: "tls.reality.short_id", label: "realityShortID", kind: "list", when: [...realityOn] },
+  { path: "tls.reality.max_time_difference", label: "realityMaxTimeDifference", when: [...realityOn] },
 ]
 
 export const transportFields: FieldSpec[] = [
@@ -85,9 +112,11 @@ const transportByType: Record<string, FieldSpec[]> = {
   httpupgrade: [{ path: "transport.host", label: "transportHost" }, { path: "transport.path", label: "transportPath" }, { path: "transport.headers", label: "transportHeaders", kind: "json-object" }],
 }
 export const multiplexFields: FieldSpec[] = [
-  { path: "multiplex.enabled", label: "multiplexEnabled", kind: "boolean" }, { path: "multiplex.padding", label: "multiplexPadding", kind: "boolean" },
-  { path: "multiplex.brutal.enabled", label: "brutalEnabled", kind: "boolean" }, { path: "multiplex.brutal.up_mbps", label: "uploadMbps", kind: "number" },
-  { path: "multiplex.brutal.down_mbps", label: "downloadMbps", kind: "number" },
+  { path: "multiplex.enabled", label: "multiplexEnabled", kind: "boolean" },
+  { path: "multiplex.padding", label: "multiplexPadding", kind: "boolean", when: { path: "multiplex.enabled", is: true } },
+  { path: "multiplex.brutal.enabled", label: "brutalEnabled", kind: "boolean", when: { path: "multiplex.enabled", is: true } },
+  { path: "multiplex.brutal.up_mbps", label: "uploadMbps", kind: "number", when: [{ path: "multiplex.enabled", is: true }, { path: "multiplex.brutal.enabled", is: true }] },
+  { path: "multiplex.brutal.down_mbps", label: "downloadMbps", kind: "number", when: [{ path: "multiplex.enabled", is: true }, { path: "multiplex.brutal.enabled", is: true }] },
 ]
 
 export const tlsTypes = new Set(["http", "mixed", "vmess", "vless", "trojan", "naive", "hysteria", "hysteria2", "tuic", "anytls"])
@@ -118,4 +147,18 @@ export function changeInboundType(object: JsonObject, type: string) {
   if (transportTypes.has(previous) && !transportTypes.has(type)) next = setPath(next, "transport", undefined)
   if (multiplexTypes.has(previous) && !multiplexTypes.has(type)) next = setPath(next, "multiplex", undefined)
   return { ...next, type }
+}
+
+export function managedInboundFields(type: string, transportType = "") {
+  const fields: FieldSpec[] = [...listenFields, ...protocolFields(type), ...tunFields]
+  if (tlsTypes.has(type)) fields.push(...tlsFields)
+  if (transportTypes.has(type)) fields.push(...transportTypeFields(transportType))
+  if (multiplexTypes.has(type)) fields.push(...multiplexFields)
+  return fields
+}
+
+export function applyInboundFieldChange(object: JsonObject, next: JsonObject, typeHint = "") {
+  const type = String(next.type ?? object.type ?? typeHint ?? "")
+  const transportType = String(getPath(next, "transport.type") ?? getPath(object, "transport.type") ?? "")
+  return pruneInvisibleFields(next, managedInboundFields(type, transportType))
 }

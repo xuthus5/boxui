@@ -1,7 +1,8 @@
 import { useState } from "react"
 import { cleanup, fireEvent, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { DNSGlobalCard } from "@/features/policy/dns-global-card"
 import { DNSRuleDialog } from "@/features/policy/dns-rule-dialog"
@@ -11,6 +12,12 @@ import type { PolicyVisualEditorProps } from "@/features/policy/policy-page"
 import { RouteGlobalCard } from "@/features/policy/route-global-card"
 import { RouteRuleDialog } from "@/features/policy/route-rule-dialog"
 import { renderApp } from "@/test/render"
+import { installMockAPI } from "@/test/mock-api"
+
+function renderDialog(ui: React.ReactElement) {
+  return renderApp(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>)
+}
+
 
 function GlobalHarness({ kind }: { kind: "route" | "dns" }) {
   const [object, setObject] = useState<JsonObject>({})
@@ -26,9 +33,11 @@ function GlobalHarness({ kind }: { kind: "route" | "dns" }) {
       return next
     }),
   }
-  return <>{kind === "route" ? <RouteGlobalCard {...props} /> : <DNSGlobalCard {...props} />}
+  return <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    {kind === "route" ? <RouteGlobalCard {...props} /> : <DNSGlobalCard {...props} />}
     <button disabled={invalid.size > 0}>保存测试</button>
-    <output aria-label={`${kind} global state`}>{JSON.stringify(object)}</output></>
+    <output aria-label={`${kind} global state`}>{JSON.stringify(object)}</output>
+  </QueryClientProvider>
 }
 
 async function expectInvalidThenValid(label: string, invalid: string, valid: string, saveName = "保存") {
@@ -40,6 +49,14 @@ async function expectInvalidThenValid(label: string, invalid: string, valid: str
   expect(input).toHaveAttribute("aria-invalid", "false")
   expect(screen.getByRole("button", { name: saveName })).toBeEnabled()
 }
+
+beforeEach(() => {
+  installMockAPI()
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe("global numeric validation", () => {
   it("gates Route and DNS global saves", async () => {
@@ -53,7 +70,7 @@ describe("global numeric validation", () => {
 
 describe("dialog numeric validation", () => {
   it("gates Route matcher and action fields", async () => {
-    renderApp(<RouteRuleDialog open title="编辑规则" item={{ action: "direct" }}
+    renderDialog(<RouteRuleDialog open title="编辑规则" item={{ action: "direct" }}
       onOpenChange={vi.fn()} onSave={vi.fn()} />)
     await userEvent.click(screen.getByRole("tab", { name: "端口与进程" }))
     await expectInvalidThenValid("源端口", "-1", "53")
@@ -91,7 +108,7 @@ describe("legacy octal routing marks", () => {
 
   it("preserves Route routing_mark through the rule Dialog", async () => {
     const onSave = vi.fn()
-    renderApp(<RouteRuleDialog open title="编辑规则" item={{ action: "direct" }}
+    renderDialog(<RouteRuleDialog open title="编辑规则" item={{ action: "direct" }}
       onOpenChange={vi.fn()} onSave={onSave} />)
     await userEvent.click(screen.getByRole("tab", { name: "执行动作" }))
     fireEvent.change(screen.getByLabelText("路由标记"), { target: { value: "0173" } })

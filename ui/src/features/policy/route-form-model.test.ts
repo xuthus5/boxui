@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  applyRouteGlobalFieldChange,
+  applyRouteRuleFieldChange,
   changeRouteAction,
   changeRouteRuleType,
   changeRuleSetType,
+  managedRouteGlobalFields,
+  managedRouteRuleFields,
   routeActionFields,
   routeActions,
   routeGlobalFields,
@@ -250,5 +254,65 @@ describe("route summaries", () => {
     expect(summarizeRuleSet({ type: "local", tag: "geo", path: "/etc/geo.srs" }))
       .toEqual({ type: "local", detail: "/etc/geo.srs" })
     expect(summarizeRuleSet({})).toEqual({ type: "inline", detail: "" })
+  })
+})
+
+
+describe("route hierarchical field pruning", () => {
+  it("prunes resolver children when server is cleared and drops keep-alive children", () => {
+    const globalNext = applyRouteGlobalFieldChange({}, {
+      final: "proxy",
+      default_domain_resolver: {
+        strategy: "prefer_ipv4",
+        disable_cache: true,
+        rewrite_ttl: 60,
+        client_subnet: "1.2.3.0/24",
+      },
+    })
+    expect(globalNext.default_domain_resolver).toBeUndefined()
+    expect(globalNext.final).toBe("proxy")
+
+    const withServer = applyRouteGlobalFieldChange({}, {
+      default_domain_resolver: { server: "dns", strategy: "prefer_ipv4" },
+    })
+    expect(withServer).toEqual({ default_domain_resolver: { server: "dns", strategy: "prefer_ipv4" } })
+
+    const cleared = applyRouteGlobalFieldChange(withServer, {
+      default_domain_resolver: { strategy: "prefer_ipv4" },
+    })
+    expect(cleared.default_domain_resolver).toBeUndefined()
+
+    const rule = applyRouteRuleFieldChange({ action: "direct" }, {
+      action: "direct",
+      disable_tcp_keep_alive: true,
+      tcp_keep_alive: "30s",
+      tcp_keep_alive_interval: "10s",
+      domain_resolver: { strategy: "prefer_ipv4", rewrite_ttl: 30 },
+    })
+    expect(rule.tcp_keep_alive).toBeUndefined()
+    expect(rule.tcp_keep_alive_interval).toBeUndefined()
+    expect(rule.domain_resolver).toBeUndefined()
+
+    const options = applyRouteRuleFieldChange({ action: "route-options" }, {
+      action: "route-options",
+      tls_fragment: false,
+      tls_fragment_fallback_delay: "500ms",
+    })
+    expect(options.tls_fragment_fallback_delay).toBeUndefined()
+
+    const keepAliveOn = applyRouteRuleFieldChange({ action: "direct" }, {
+      action: "direct",
+      disable_tcp_keep_alive: false,
+      tcp_keep_alive: "30s",
+      domain_resolver: { server: "dns", strategy: "prefer_ipv6" },
+    })
+    expect(keepAliveOn).toMatchObject({
+      tcp_keep_alive: "30s",
+      domain_resolver: { server: "dns", strategy: "prefer_ipv6" },
+    })
+
+    const fields = managedRouteRuleFields("default", "resolve")
+    expect(fields.some((field) => field.path === "server")).toBe(true)
+    expect(managedRouteGlobalFields().map((field) => field.path)).not.toContain("final")
   })
 })

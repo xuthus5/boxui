@@ -1,3 +1,5 @@
+import type { ReactElement } from "react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, it, vi } from "vitest"
@@ -5,10 +7,15 @@ import { expect, it, vi } from "vitest"
 import { RouteRuleDialog } from "@/features/policy/route-rule-dialog"
 import { renderApp } from "@/test/render"
 
+function renderDialog(ui: ReactElement) {
+  return renderApp(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>)
+}
+
+
 it("keeps network type matcher when changing away from direct", async () => {
   const onSave = vi.fn()
   const user = userEvent.setup()
-  renderApp(<RouteRuleDialog open title="编辑规则" item={{
+  renderDialog(<RouteRuleDialog open title="编辑规则" item={{
     action: "direct", network_type: ["wifi"], bind_interface: "eth0",
   }} onOpenChange={vi.fn()} onSave={onSave} />)
 

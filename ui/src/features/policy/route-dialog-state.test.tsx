@@ -1,10 +1,17 @@
+import type { ReactElement } from "react"
 import { fireEvent, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { describe, expect, it, vi } from "vitest"
 
 import { RouteRuleDialog } from "@/features/policy/route-rule-dialog"
 import { RouteRuleSetDialog } from "@/features/policy/route-rule-set-dialog"
 import { renderApp } from "@/test/render"
+
+function renderDialog(ui: ReactElement) {
+  return renderApp(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>)
+}
+
 
 async function replaceJSON(label: string, value: string) {
   const editor = screen.getByRole("textbox", { name: label })
@@ -36,7 +43,7 @@ const dialogs = [
 
 describe("Route Advanced JSON resilience", () => {
   it.each(dialogs)("keeps $name Tabs and invalid raw JSON mounted", async ({ dialog, jsonLabel, tab, field }) => {
-    renderApp(dialog)
+    renderDialog(dialog)
     await userEvent.click(screen.getByRole("tab", { name: "高级 JSON" }))
     await replaceJSON(jsonLabel, "[")
 
@@ -49,7 +56,7 @@ describe("Route Advanced JSON resilience", () => {
   })
 
   it.each(dialogs)("recovers $name JSON through a structured edit", async ({ dialog, jsonLabel, tab, field, recovered }) => {
-    renderApp(dialog)
+    renderDialog(dialog)
     await userEvent.click(screen.getByRole("tab", { name: "高级 JSON" }))
     await replaceJSON(jsonLabel, "[")
     await userEvent.click(screen.getByRole("tab", { name: tab }))

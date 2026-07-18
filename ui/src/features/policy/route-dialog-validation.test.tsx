@@ -1,11 +1,18 @@
+import type { ReactElement } from "react"
 import { cleanup, fireEvent, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { describe, expect, it, vi } from "vitest"
 
 import { RouteRuleDialog } from "@/features/policy/route-rule-dialog"
 import { RouteRuleSetDialog } from "@/features/policy/route-rule-set-dialog"
 import type { JsonObject } from "@/features/policy/policy-form-model"
 import { renderApp } from "@/test/render"
+
+function renderDialog(ui: ReactElement) {
+  return renderApp(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>)
+}
+
 
 async function choose(label: string, option: string) {
   const user = userEvent.setup()
@@ -48,7 +55,7 @@ function expectEveryFieldGrouped() {
 
 describe("route dialog required values", () => {
   it("requires at least one object logical child after changing from default", async () => {
-    renderApp(<RouteRuleDialog open title="编辑规则" item={{ action: "reject" }}
+    renderDialog(<RouteRuleDialog open title="编辑规则" item={{ action: "reject" }}
       onOpenChange={vi.fn()} onSave={vi.fn()} />)
 
     await choose("规则类型", "logical")
@@ -65,7 +72,7 @@ describe("route dialog required values", () => {
 
   it.each(ruleSetRequiredCases)("requires $name and saves after it is provided", async ({ item, label, value, expected }) => {
     const onSave = vi.fn()
-    renderApp(<RouteRuleSetDialog open title="编辑规则集" item={item}
+    renderDialog(<RouteRuleSetDialog open title="编辑规则集" item={item}
       onOpenChange={vi.fn()} onSave={onSave} />)
 
     expect(screen.getByRole("button", { name: "保存" })).toBeDisabled()
@@ -81,7 +88,7 @@ describe("unknown route values", () => {
     const item = { type: "future", tag: "custom", format: "binary", payload: { enabled: true } }
     const onSave = vi.fn()
     const user = userEvent.setup()
-    renderApp(<RouteRuleSetDialog open title="编辑规则集" item={item}
+    renderDialog(<RouteRuleSetDialog open title="编辑规则集" item={item}
       onOpenChange={vi.fn()} onSave={onSave} />)
 
     await user.click(screen.getByRole("combobox", { name: "规则集类型" }))
@@ -92,7 +99,7 @@ describe("unknown route values", () => {
 
   it("switches an unknown rule type through the model transition", async () => {
     const onSave = vi.fn()
-    renderApp(<RouteRuleDialog open title="编辑规则" item={{
+    renderDialog(<RouteRuleDialog open title="编辑规则" item={{
       type: "future", mode: "and", domain: ["example.com"], action: "reject", payload: { enabled: true },
     }} onOpenChange={vi.fn()} onSave={onSave} />)
 
@@ -107,7 +114,7 @@ describe("unknown route values", () => {
 
   it("switches an unknown action and preserves its payload", async () => {
     const onSave = vi.fn()
-    renderApp(<RouteRuleDialog open title="编辑规则" item={{
+    renderDialog(<RouteRuleDialog open title="编辑规则" item={{
       action: "future", method: "drop", outbound: "old", payload: { enabled: true },
     }} onOpenChange={vi.fn()} onSave={onSave} />)
 
@@ -122,14 +129,14 @@ describe("unknown route values", () => {
 
 describe("route dialog form composition", () => {
   it("wraps every direct Field in a FieldGroup", async () => {
-    renderApp(<RouteRuleDialog open title="编辑规则" item={{ action: "reject" }}
+    renderDialog(<RouteRuleDialog open title="编辑规则" item={{ action: "reject" }}
       onOpenChange={vi.fn()} onSave={vi.fn()} />)
     expectEveryFieldGrouped()
     await userEvent.click(screen.getByRole("tab", { name: "高级 JSON" }))
     expectEveryFieldGrouped()
 
     cleanup()
-    renderApp(<RouteRuleSetDialog open title="编辑规则集" item={{ type: "inline", tag: "inline" }}
+    renderDialog(<RouteRuleSetDialog open title="编辑规则集" item={{ type: "inline", tag: "inline" }}
       onOpenChange={vi.fn()} onSave={vi.fn()} />)
     expectEveryFieldGrouped()
     await userEvent.click(screen.getByRole("tab", { name: "高级 JSON" }))

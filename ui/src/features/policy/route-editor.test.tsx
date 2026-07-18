@@ -1,7 +1,8 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useState } from "react"
 import { fireEvent, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import App from "@/App"
 import type { PolicyVisualEditorProps } from "@/features/policy/policy-page"
@@ -11,12 +12,26 @@ import { RouteVisualEditor } from "@/features/policy/route-visual-editor"
 import type { JsonObject } from "@/features/policy/policy-form-model"
 import type { RouteRuleMetadata } from "@/lib/api/types"
 import { sessionStore } from "@/lib/session"
+import { installMockAPI } from "@/test/mock-api"
 import { renderApp } from "@/test/render"
+
+function renderDialog(ui: React.ReactElement) {
+  return renderApp(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>)
+}
+
+
+beforeEach(() => {
+  installMockAPI()
+})
 
 afterEach(() => {
   vi.unstubAllGlobals()
   sessionStore.clear()
 })
+
+function withQuery(ui: React.ReactElement) {
+  return <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>
+}
 
 function EditorHarness({ initial, initialMetadata = [] }: { initial: JsonObject; initialMetadata?: RouteRuleMetadata[] }) {
   const [object, setObject] = useState(initial)
@@ -28,9 +43,9 @@ function EditorHarness({ initial, initialMetadata = [] }: { initial: JsonObject;
     onFieldValidityChange: vi.fn(),
   }
   const rules = Array.isArray(object.rules) ? object.rules : []
-  return <><RouteVisualEditor {...props} outbounds={[{ type: "direct", tag: "direct" }, { type: "selector", tag: "proxy" }]} metadata={metadata} onMetadataChange={setMetadata} /><output aria-label="route state">{JSON.stringify(object)}</output>
+  return withQuery(<><RouteVisualEditor {...props} outbounds={[{ type: "direct", tag: "direct" }, { type: "selector", tag: "proxy" }]} metadata={metadata} onMetadataChange={setMetadata} /><output aria-label="route state">{JSON.stringify(object)}</output>
     <output aria-label="route metadata state">{JSON.stringify(metadata)}</output>
-    <output aria-label="rule identity">{String(rules.length > 1 && rules[0] === rules[1])}</output></>
+    <output aria-label="rule identity">{String(rules.length > 1 && rules[0] === rules[1])}</output></>)
 }
 
 async function choose(label: string, option: string) {
@@ -63,7 +78,7 @@ const routeFixture = {
   custom: { retained: true },
 }
 
-const configFixture = { route: routeFixture, outbounds: [{ type: "direct", tag: "direct" }, { type: "selector", tag: "proxy" }], dns: { final: "dns" }, log: { level: "info" } }
+const configFixture = { route: routeFixture, outbounds: [{ type: "direct", tag: "direct" }, { type: "selector", tag: "proxy" }], dns: { final: "dns", servers: [{ tag: "dns", type: "local" }, { tag: "dns-new", type: "udp", server: "1.1.1.1" }] }, log: { level: "info" } }
 
 function expectedSavedConfig() {
   return {
@@ -95,10 +110,11 @@ function stubRouteConfig() {
 async function changeRouteGlobals() {
   const user = userEvent.setup()
   await choose("最终出站", "direct")
-  for (const name of ["查找进程", "自动检测接口", "覆盖 Android VPN", "禁用默认解析缓存"]) {
+  for (const name of ["查找进程", "自动检测接口", "覆盖 Android VPN"]) {
     await user.click(screen.getByRole("switch", { name }))
   }
-  fireEvent.change(screen.getByLabelText("默认域名解析服务器"), { target: { value: "dns-new" } })
+  await choose("默认域名解析服务器", "dns-new")
+  await user.click(screen.getByRole("switch", { name: "禁用默认解析缓存" }))
   await choose("默认域名解析策略", "prefer_ipv6")
   await choose("默认网络策略", "hybrid")
   fireEvent.change(screen.getByLabelText("默认网络类型"), { target: { value: "wifi\nethernet" } })
@@ -153,7 +169,7 @@ describe("route global editor", () => {
 describe("route rule dialog", () => {
   it("edits optional rule name and description outside the sing-box rule JSON", async () => {
     const onSave = vi.fn()
-    renderApp(<RouteRuleDialog open item={{ action: "reject" }} metadata={{ name: "广告拦截", description: "阻止广告请求" }}
+    renderDialog(<RouteRuleDialog open item={{ action: "reject" }} metadata={{ name: "广告拦截", description: "阻止广告请求" }}
       title="编辑规则" onOpenChange={vi.fn()} onSave={onSave} />)
     expect(screen.getByLabelText("规则名称")).toHaveValue("广告拦截")
     expect(screen.getByLabelText("规则描述")).toHaveValue("阻止广告请求")
@@ -166,7 +182,7 @@ describe("route rule dialog", () => {
   })
 
   it("offers every match tab and supported action with required action values", async () => {
-    renderApp(<RouteRuleDialog open item={{}} title="新增规则" onOpenChange={vi.fn()} onSave={vi.fn()} />)
+    renderDialog(<RouteRuleDialog open item={{}} title="新增规则" onOpenChange={vi.fn()} onSave={vi.fn()} />)
     expect(screen.getByRole("dialog")).toHaveClass("sm:max-w-5xl")
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
       "基础与网络", "域名与地址", "端口与进程", "规则集与网络环境", "执行动作", "高级 JSON",
@@ -178,12 +194,12 @@ describe("route rule dialog", () => {
     }
     await userEvent.click(screen.getByRole("option", { name: "route" }))
     expect(screen.getByRole("button", { name: "保存" })).toBeDisabled()
-    fireEvent.change(screen.getByLabelText("目标出站"), { target: { value: "proxy" } })
+    await choose("目标出站", "proxy")
     expect(screen.getByRole("button", { name: "保存" })).toBeEnabled()
   })
 
   it("requires the resolver server and exposes action-specific fields", async () => {
-    renderApp(<RouteRuleDialog open item={{ action: "resolve" }} title="编辑规则" onOpenChange={vi.fn()} onSave={vi.fn()} />)
+    renderDialog(<RouteRuleDialog open item={{ action: "resolve" }} title="编辑规则" onOpenChange={vi.fn()} onSave={vi.fn()} />)
     await userEvent.click(screen.getByRole("tab", { name: "执行动作" }))
     expect(screen.getByLabelText("解析服务器")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "保存" })).toBeDisabled()
@@ -194,7 +210,7 @@ describe("route rule dialog", () => {
   })
 
   it.each(actionCases)("edits the %s action", async (action, item, fieldLabel) => {
-    renderApp(<RouteRuleDialog open item={item} title={`编辑 ${action}`} onOpenChange={vi.fn()} onSave={vi.fn()} />)
+    renderDialog(<RouteRuleDialog open item={item} title={`编辑 ${action}`} onOpenChange={vi.fn()} onSave={vi.fn()} />)
     await userEvent.click(screen.getByRole("tab", { name: "执行动作" }))
     expect(screen.getByRole("combobox", { name: "执行动作" })).toHaveTextContent(action)
     if (fieldLabel) expect(screen.getByLabelText(fieldLabel)).toBeInTheDocument()
@@ -202,7 +218,7 @@ describe("route rule dialog", () => {
   })
 
   it("keeps logical child JSON invalidity blocking save across tabs", async () => {
-    renderApp(<RouteRuleDialog open title="编辑规则" item={{
+    renderDialog(<RouteRuleDialog open title="编辑规则" item={{
       type: "logical", mode: "and", rules: [{ action: "reject" }], invert: false, action: "reject",
     }} onOpenChange={vi.fn()} onSave={vi.fn()} />)
     expect(screen.getByRole("combobox", { name: "逻辑模式" })).toHaveTextContent("and")
@@ -218,7 +234,7 @@ describe("route rule dialog", () => {
 
   it("uses the immutable type transition when changing a logical rule to default", async () => {
     const onSave = vi.fn()
-    renderApp(<RouteRuleDialog open title="编辑规则" item={{
+    renderDialog(<RouteRuleDialog open title="编辑规则" item={{
       type: "logical", mode: "or", rules: [{ action: "reject" }], invert: true,
       action: "reject", custom: "keep",
     }} onOpenChange={vi.fn()} onSave={onSave} />)
@@ -229,7 +245,7 @@ describe("route rule dialog", () => {
 
   it("blocks save for invalid or non-object advanced JSON", async () => {
     const user = userEvent.setup()
-    renderApp(<RouteRuleDialog open item={{ action: "reject" }} title="编辑规则" onOpenChange={vi.fn()} onSave={vi.fn()} />)
+    renderDialog(<RouteRuleDialog open item={{ action: "reject" }} title="编辑规则" onOpenChange={vi.fn()} onSave={vi.fn()} />)
     await user.click(screen.getByRole("tab", { name: "高级 JSON" }))
     const editor = screen.getByRole("textbox", { name: "编辑规则 JSON" })
     await user.click(editor)
@@ -259,7 +275,7 @@ describe("route rule cards", () => {
     fireEvent.change(screen.getByLabelText("规则名称"), { target: { value: "主路由规则" } })
     fireEvent.change(screen.getByLabelText("规则描述"), { target: { value: "用于代理目标流量" } })
     await user.click(screen.getByRole("tab", { name: "执行动作" }))
-    fireEvent.change(screen.getByLabelText("目标出站"), { target: { value: "proxy" } })
+    await choose("目标出站", "proxy")
     await user.click(screen.getByRole("button", { name: "保存" }))
     expect(screen.getByLabelText("route state")).toHaveTextContent('"action":"route"')
     expect(screen.getByLabelText("route metadata state")).toHaveTextContent('"name":"主路由规则"')
@@ -303,7 +319,7 @@ describe("route rule cards", () => {
 describe("route rule-set editor", () => {
   it("validates type-driven fields and preserves unknown keys on transitions", async () => {
     const onSave = vi.fn()
-    renderApp(<RouteRuleSetDialog open title="编辑规则集" item={{
+    renderDialog(<RouteRuleSetDialog open title="编辑规则集" item={{
       type: "remote", tag: "geo", url: "https://old/r.srs", update_interval: "1d", custom: "keep",
     }} onOpenChange={vi.fn()} onSave={onSave} />)
     expect(screen.getByRole("button", { name: "保存" })).toBeEnabled()

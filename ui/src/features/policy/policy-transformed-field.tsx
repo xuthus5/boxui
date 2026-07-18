@@ -1,7 +1,9 @@
+import { CircleHelpIcon } from "lucide-react"
 import { type ChangeEvent, useEffect, useId, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { defaultPolicyFieldUpdate } from "@/features/policy/policy-field-update"
@@ -28,7 +30,7 @@ function textValue(value: JsonValue | undefined): string {
 
 export function TransformedPolicyField(props: TransformedPolicyFieldProps) {
   const { field, label, namespace, object, revision = 0, value, onChange, onFieldValidityChange, transformField } = props
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const id = useId()
   const serialized = textValue(value)
   const sourceKey = `${revision}:${serialized}`
@@ -48,7 +50,17 @@ export function TransformedPolicyField(props: TransformedPolicyFieldProps) {
   const area = field.kind === "textarea" || field.kind === "list" || field.kind === "number-list"
   const controlProps = { id, "aria-label": label, "aria-invalid": current.invalid, required: field.required,
     value: current.raw, onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => update(event.target.value) }
-  return <Field data-invalid={current.invalid}><FieldLabel htmlFor={id}>{label}</FieldLabel>
+  const helpKey = `${namespace}.${field.label}Help`
+  return <Field data-invalid={current.invalid}>
+    <div className="flex items-center gap-1.5">
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      {i18n.exists(helpKey) ? <Tooltip>
+        <TooltipTrigger type="button" className="inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50" aria-label={t("common.fieldHelp")}>
+          <CircleHelpIcon className="size-3.5" />
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs text-left leading-relaxed">{t(helpKey)}</TooltipContent>
+      </Tooltip> : null}
+    </div>
     {area ? <Textarea {...controlProps} /> : <Input {...controlProps} type={field.kind === "number" ? "number" : "text"} />}
     {current.invalid ? <FieldDescription>{t(`${namespace}.invalidValue`)}</FieldDescription> : null}
   </Field>

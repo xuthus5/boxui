@@ -1,7 +1,8 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useState } from "react"
 import { cleanup, fireEvent, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { PolicyFormFields } from "@/features/policy/policy-form-fields"
 import { i18n } from "@/i18n"
@@ -10,11 +11,28 @@ import {
   getPolicyPath,
   isJsonObject,
   moveItem,
+  groupPolicyFieldsBySection,
+  isPolicyFieldVisible,
+  policyConfigTags,
+  policyDNSServerTags,
+  policyRuleSetTags,
+  pruneInvisiblePolicyFields,
   setPolicyPath,
+  visiblePolicyFields,
   type JsonObject,
   type PolicyFieldSpec,
 } from "@/features/policy/policy-form-model"
+import { installMockAPI } from "@/test/mock-api"
 import { renderApp } from "@/test/render"
+
+beforeEach(() => {
+  installMockAPI()
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  cleanup()
+})
 
 describe("policy form JSON helpers", () => {
   it("recognizes JSON objects", () => {
@@ -256,5 +274,208 @@ describe("policy form field conversions", () => {
 
     await user.click(screen.getByRole("button", { name: "External field update" }))
     expect(input).toHaveValue(JSON.stringify({ X: "new" }, null, 2))
+  })
+})
+
+
+function renderWithQuery(ui: React.ReactElement) {
+  return renderApp(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>)
+}
+
+describe("policy form hierarchy and refs", () => {
+  it("renders section titles and hierarchical fields", () => {
+    renderApp(<PolicyFormFields
+      fields={[
+        { path: "tls_fragment", label: "tlsFragment", kind: "boolean", section: "action" },
+        { path: "tls_fragment_fallback_delay", label: "tlsFragmentFallbackDelay", section: "action", when: { path: "tls_fragment", is: true } },
+      ]}
+      object={{ tls_fragment: true, tls_fragment_fallback_delay: "500ms" }}
+      namespace="policy.route"
+      onChange={vi.fn()}
+    />)
+    expect(screen.getByText("执行动作")).toBeInTheDocument()
+    expect(screen.getByLabelText("TLS 分片回退延迟")).toBeInTheDocument()
+    cleanup()
+    renderApp(<PolicyFormFields
+      fields={[
+        { path: "tls_fragment", label: "tlsFragment", kind: "boolean", section: "action" },
+        { path: "tls_fragment_fallback_delay", label: "tlsFragmentFallbackDelay", section: "action", when: { path: "tls_fragment", is: true } },
+      ]}
+      object={{ tls_fragment: false }}
+      namespace="policy.route"
+      onChange={vi.fn()}
+    />)
+    expect(screen.queryByLabelText("TLS 分片回退延迟")).not.toBeInTheDocument()
+  })
+
+  it("selects outbound refs and falls back to text input without options", async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    renderApp(<PolicyFormFields
+      fields={[{ path: "outbound", label: "outbound", kind: "ref", ref: "outbound", required: true }]}
+      object={{}}
+      namespace="policy.route"
+      context={{ outboundTags: ["proxy", "direct"] }}
+      onChange={onChange}
+    />)
+    await user.click(screen.getByRole("combobox", { name: "目标出站" }))
+    await user.click(await screen.findByRole("option", { name: "proxy" }))
+    expect(onChange).toHaveBeenLastCalledWith({ outbound: "proxy" })
+    cleanup()
+
+    const textChange = vi.fn()
+    renderApp(<PolicyFormFields
+      fields={[{ path: "server", label: "resolveServer", kind: "ref", ref: "dns-server", required: true }]}
+      object={{}}
+      namespace="policy.route"
+      onChange={textChange}
+    />)
+    fireEvent.change(screen.getByLabelText("解析服务器"), { target: { value: "dns-remote" } })
+    expect(textChange).toHaveBeenLastCalledWith({ server: "dns-remote" })
+  })
+
+  it("toggles network multi values and selects network interfaces", async () => {
+    const user = userEvent.setup()
+    function Harness() {
+      const [object, setObject] = useState<JsonObject>({})
+      return <>
+        <output aria-label="form state">{JSON.stringify(object)}</output>
+        <PolicyFormFields
+          fields={[
+            { path: "network", label: "network", kind: "network-multi" },
+            { path: "default_interface", label: "defaultInterface", kind: "network-interface" },
+          ]}
+          object={object}
+          namespace="policy.route"
+          onChange={setObject}
+        />
+      </>
+    }
+    renderWithQuery(<Harness />)
+    await user.click(screen.getByRole("switch", { name: /tcp/ }))
+    expect(screen.getByLabelText("form state")).toHaveTextContent('"network":["tcp"]')
+    await user.click(screen.getByRole("switch", { name: /udp/ }))
+    expect(screen.getByLabelText("form state")).toHaveTextContent('"network":["tcp","udp"]')
+    await user.click(screen.getByRole("switch", { name: /tcp/ }))
+    expect(screen.getByLabelText("form state")).toHaveTextContent('"network":["udp"]')
+
+    await user.click(await screen.findByRole("combobox", { name: "默认接口" }))
+    await user.click(await screen.findByRole("option", { name: /eth0/ }))
+    expect(screen.getByLabelText("form state")).toHaveTextContent('"default_interface":"eth0"')
+
+    await user.click(screen.getByRole("combobox", { name: "默认接口" }))
+    await user.click(await screen.findByRole("option", { name: "手动输入" }))
+    fireEvent.change(screen.getByLabelText("自定义网卡名称"), { target: { value: "wg0" } })
+    expect(screen.getByLabelText("form state")).toHaveTextContent('"default_interface":"wg0"')
+
+    await user.click(screen.getByRole("combobox", { name: "默认接口" }))
+    await user.click(await screen.findByRole("option", { name: "未设置" }))
+    expect(screen.getByLabelText("form state")).not.toHaveTextContent("default_interface")
+  })
+
+  it("covers visibility prune helpers", () => {
+    const fields = [
+      { path: "tls_fragment", label: "tlsFragment", kind: "boolean" as const },
+      { path: "tls_fragment_fallback_delay", label: "delay", when: { path: "tls_fragment", is: true as const } },
+    ]
+    expect(visiblePolicyFields(fields, { tls_fragment: false }).map((field) => field.path)).toEqual(["tls_fragment"])
+    expect(pruneInvisiblePolicyFields({ tls_fragment: false, tls_fragment_fallback_delay: "1s" }, fields)).toEqual({ tls_fragment: false })
+  })
+})
+
+
+describe("policy form ref variants and helpers", () => {
+  it("supports inbound/rule-set refs, network-interface ref kind, and leading content", async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    renderWithQuery(<PolicyFormFields
+      fields={[
+        { path: "inbound", label: "inbound", kind: "ref", ref: "inbound" },
+        { path: "rule_set", label: "ruleSet", kind: "ref", ref: "rule-set" },
+        { path: "bind_interface", label: "defaultInterface", kind: "ref", ref: "network-interface" },
+        { path: "notes", label: "description", kind: "textarea" },
+      ]}
+      object={{ inbound: "legacy-in" }}
+      namespace="policy.route"
+      context={{ inboundTags: ["mixed-in"], ruleSetTags: ["geo"] }}
+      leading={<div>leading-slot</div>}
+      onChange={onChange}
+    />)
+    expect(screen.getByText("leading-slot")).toBeInTheDocument()
+    await user.click(screen.getByRole("combobox", { name: "入站" }))
+    await user.click(await screen.findByRole("option", { name: "mixed-in" }))
+    expect(onChange).toHaveBeenLastCalledWith({ inbound: "mixed-in" })
+    await user.click(screen.getByRole("combobox", { name: "规则集" }))
+    await user.click(await screen.findByRole("option", { name: "geo" }))
+    expect(onChange).toHaveBeenLastCalledWith({ inbound: "legacy-in", rule_set: "geo" })
+    await user.click(await screen.findByRole("combobox", { name: "默认接口" }))
+    await user.click(await screen.findByRole("option", { name: /wlan0/ }))
+    expect(onChange).toHaveBeenLastCalledWith({ inbound: "legacy-in", bind_interface: "wlan0" })
+  })
+
+  it("covers tag helpers and section grouping", () => {
+    expect(policyConfigTags([{ tag: "a" }, { tag: "a" }, { tag: "b" }, null, "x"], "b")).toEqual(["a"])
+    expect(policyConfigTags("bad")).toEqual([])
+    expect(policyDNSServerTags({ servers: [{ tag: "dns" }] })).toEqual(["dns"])
+    expect(policyDNSServerTags([])).toEqual([])
+    expect(policyRuleSetTags({ rule_set: [{ tag: "geo" }] })).toEqual(["geo"])
+    expect(policyRuleSetTags(null)).toEqual([])
+    const fields = [
+      { path: "a", label: "a", section: "basic" },
+      { path: "b", label: "b", section: "basic" },
+      { path: "c", label: "c", section: "action" },
+      { path: "d", label: "d" },
+    ]
+    expect(groupPolicyFieldsBySection(fields).map((group) => [group.section, group.fields.length])).toEqual([
+      ["basic", 2], ["action", 1], [undefined, 1],
+    ])
+    expect(isPolicyFieldVisible({ enabled: false }, { path: "child", label: "c", when: { path: "enabled" } })).toBe(false)
+    expect(isPolicyFieldVisible({ mode: "a" }, { path: "child", label: "c", when: { path: "mode", is: ["a", "b"] } })).toBe(true)
+    expect(isPolicyFieldVisible({ mode: "" }, { path: "child", label: "c", when: { path: "mode", falsy: true } })).toBe(true)
+  })
+})
+
+describe("policy form interface revision sync", () => {
+  it("revision remounts network interface mode for unknown values", async () => {
+    const user = userEvent.setup()
+    function Harness() {
+      const [object, setObject] = useState<JsonObject>({ default_interface: "custom0" })
+      const [revision, setRevision] = useState(0)
+      return <>
+        <button onClick={() => { setObject({ default_interface: "eth0" }); setRevision((value) => value + 1) }}>Sync</button>
+        <output aria-label="form state">{JSON.stringify(object)}</output>
+        <PolicyFormFields
+          fields={[{ path: "default_interface", label: "defaultInterface", kind: "network-interface" }]}
+          object={object}
+          namespace="policy.route"
+          revision={revision}
+          onChange={setObject}
+        />
+      </>
+    }
+    renderWithQuery(<Harness />)
+    expect(screen.getByLabelText("自定义网卡名称")).toHaveValue("custom0")
+    await user.click(screen.getByRole("button", { name: "Sync" }))
+    expect(screen.queryByLabelText("自定义网卡名称")).not.toBeInTheDocument()
+    expect(screen.getByLabelText("form state")).toHaveTextContent('"default_interface":"eth0"')
+  })
+})
+
+describe("policy form ref clear and unknown option", () => {
+  it("clears ref values with not-set option and keeps unknown current values", async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    renderApp(<PolicyFormFields
+      fields={[{ path: "outbound", label: "outbound", kind: "ref", ref: "outbound", required: true }]}
+      object={{ outbound: "legacy" }}
+      namespace="policy.route"
+      context={{ outboundTags: ["proxy"] }}
+      onChange={onChange}
+    />)
+    // unknown current value remains selectable
+    await user.click(screen.getByRole("combobox", { name: "目标出站" }))
+    expect(await screen.findByRole("option", { name: "legacy" })).toBeInTheDocument()
+    await user.click(await screen.findByRole("option", { name: "未设置" }))
+    expect(onChange).toHaveBeenLastCalledWith({})
   })
 })

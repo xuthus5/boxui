@@ -18,7 +18,9 @@ import {
   type PolicyFieldSpec,
   type PolicyFieldTransform,
 } from "@/features/policy/policy-form-model"
-import { changeRouteAction, changeRouteRuleType, routeActionFields, routeActions, routeMatchFields } from "@/features/policy/route-form-model"
+import { applyRouteRuleFieldChange, changeRouteAction, changeRouteRuleType, routeActionFields, routeActions, routeMatchFields } from "@/features/policy/route-form-model"
+import { policyConfigTags, policyDNSServerTags, policyRuleSetTags } from "@/features/policy/policy-form-model"
+import { useConfigQuery } from "@/features/config/config-hooks"
 import { transformRouteField } from "@/features/policy/route-form-transform"
 import type { RouteRuleMetadata } from "@/lib/api/types"
 
@@ -85,10 +87,11 @@ function RuleTypeSelect({ object, onChange }: { object: JsonObject; onChange: (i
   </Field></FieldGroup>
 }
 
-function ActionFields({ object, revision, onChange, onValidity, transform }: {
+function ActionFields({ object, revision, onChange, onValidity, transform, context }: {
   object: JsonObject; revision: number; onChange: (item: JsonObject) => void
   onValidity: (path: string, valid: boolean) => void
   transform: PolicyFieldTransform
+  context?: import("@/features/policy/policy-form-model").PolicyFormContext
 }) {
   const { t } = useTranslation()
   const current = String(object.action ?? "route")
@@ -102,7 +105,7 @@ function ActionFields({ object, revision, onChange, onValidity, transform }: {
       </Select>
     </Field></FieldGroup>
     <PolicyFormFields fields={routeActionFields[current] ?? []} object={object} namespace="policy.route"
-      revision={revision} onChange={onChange} onFieldValidityChange={onValidity} transformField={transform} />
+      revision={revision} context={context} onChange={(next) => onChange(applyRouteRuleFieldChange(object, next))} onFieldValidityChange={onValidity} transformField={transform} />
   </div>
 }
 
@@ -118,13 +121,14 @@ interface RuleTabsProps {
   transform: PolicyFieldTransform
 }
 
-function StructuredFields({ object, fields, revision, onChange, onValidity, transform }: {
+function StructuredFields({ object, fields, revision, onChange, onValidity, transform, context }: {
   object: JsonObject; fields: readonly PolicyFieldSpec[]; revision: number
   onChange: (item: JsonObject) => void; onValidity: (path: string, valid: boolean) => void
   transform: PolicyFieldTransform
+  context?: import("@/features/policy/policy-form-model").PolicyFormContext
 }) {
-  return <PolicyFormFields fields={fields} object={object} namespace="policy.route" revision={revision}
-    onChange={onChange} onFieldValidityChange={onValidity} transformField={transform} />
+  return <PolicyFormFields fields={fields} object={object} namespace="policy.route" revision={revision} context={context}
+    onChange={(next) => onChange(applyRouteRuleFieldChange(object, next))} onFieldValidityChange={onValidity} transformField={transform} />
 }
 
 function AdvancedJSONField({ value, title, revision, onChange }: {
@@ -138,8 +142,15 @@ function AdvancedJSONField({ value, title, revision, onChange }: {
 
 function RuleTabs(props: RuleTabsProps) {
   const { t } = useTranslation()
+  const config = useConfigQuery()
   const { object, value, title, revision, editorRevision, onChange, onJSONChange, onValidity, transform } = props
   const logical = object.type === "logical"
+  const context = {
+    inboundTags: policyConfigTags(config.data?.inbounds),
+    outboundTags: policyConfigTags(config.data?.outbounds),
+    dnsServerTags: policyDNSServerTags(config.data?.dns),
+    ruleSetTags: policyRuleSetTags(config.data?.route),
+  }
   return <Tabs defaultValue="basic" className="min-h-0 min-w-0">
     <TabsList activateOnFocus className="h-auto max-w-full justify-start overflow-x-auto overflow-y-hidden" variant="line">
       <TabsTrigger value="basic">{t("policy.route.basicTab")}</TabsTrigger><TabsTrigger value="domain">{t("policy.route.domainTab")}</TabsTrigger>
@@ -148,23 +159,23 @@ function RuleTabs(props: RuleTabsProps) {
     </TabsList>
     <TabsContent value="basic" className="pt-4" keepMounted>
       <div className="flex flex-col gap-4"><RuleTypeSelect object={object} onChange={onChange} />
-        <StructuredFields object={object} fields={logical ? logicalFields : basicFields.slice(1)} revision={revision} onChange={onChange} onValidity={onValidity} transform={transform} />
+        <StructuredFields object={object} fields={logical ? logicalFields : basicFields.slice(1)} revision={revision} onChange={onChange} onValidity={onValidity} transform={transform} context={context} />
         {logical ? <Alert><AlertTitle>{t("policy.route.logicalTitle")}</AlertTitle>
           <AlertDescription>{t("policy.route.logicalDescription")}</AlertDescription></Alert> : null}
       </div>
     </TabsContent>
-    <TabsContent value="domain" className="pt-4" keepMounted><StructuredFields object={object} fields={logical ? [] : domainFields} revision={revision} onChange={onChange} onValidity={onValidity} transform={transform} /></TabsContent>
+    <TabsContent value="domain" className="pt-4" keepMounted><StructuredFields object={object} fields={logical ? [] : domainFields} revision={revision} onChange={onChange} onValidity={onValidity} transform={transform} context={context} /></TabsContent>
     <TabsContent value="process" className="pt-4" keepMounted>
       <div className="flex flex-col gap-4">
         {logical ? null : <Alert>
           <AlertTitle>{t("policy.route.processMatchTitle")}</AlertTitle>
           <AlertDescription>{t("policy.route.processMatchDescription")}</AlertDescription>
         </Alert>}
-        <StructuredFields object={object} fields={logical ? [] : processFields} revision={revision} onChange={onChange} onValidity={onValidity} transform={transform} />
+        <StructuredFields object={object} fields={logical ? [] : processFields} revision={revision} onChange={onChange} onValidity={onValidity} transform={transform} context={context} />
       </div>
     </TabsContent>
-    <TabsContent value="environment" className="pt-4" keepMounted><StructuredFields object={object} fields={logical ? [] : environmentFields} revision={revision} onChange={onChange} onValidity={onValidity} transform={transform} /></TabsContent>
-    <TabsContent value="action" className="pt-4" keepMounted><ActionFields object={object} revision={revision} onChange={onChange} onValidity={onValidity} transform={transform} /></TabsContent>
+    <TabsContent value="environment" className="pt-4" keepMounted><StructuredFields object={object} fields={logical ? [] : environmentFields} revision={revision} onChange={onChange} onValidity={onValidity} transform={transform} context={context} /></TabsContent>
+    <TabsContent value="action" className="pt-4" keepMounted><ActionFields object={object} revision={revision} onChange={onChange} onValidity={onValidity} transform={transform} context={context} /></TabsContent>
     <TabsContent value="advanced" className="pt-4" keepMounted><AdvancedJSONField value={value} title={title}
       revision={editorRevision} onChange={onJSONChange} /></TabsContent>
   </Tabs>

@@ -21,8 +21,9 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { useAuth } from "@/features/auth/auth-context"
 import { footerItems, navigationGroups, primaryItems, type NavigationItem } from "@/app/navigation"
+import { useAuth } from "@/features/auth/auth-context"
+import { AppearanceMenu } from "@/features/preferences/appearance-menu"
 
 function navigationContext(pathname: string) {
   const primary = primaryItems.find((item) => item.to === pathname)
@@ -104,7 +105,11 @@ export function AppShell() {
         <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/75">
           <SidebarTrigger><PanelLeftIcon /></SidebarTrigger>
           <Separator orientation="vertical" className="h-5" />
-          <div className="flex min-w-0 flex-col"><span className="truncate text-xs text-muted-foreground">{context.group ? t(context.group) : "BoxUI"}</span><span className="truncate text-sm font-medium">{context.item ? t(context.item) : "BoxUI"}</span></div>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-xs text-muted-foreground">{context.group ? t(context.group) : "BoxUI"}</span>
+            <span className="truncate text-sm font-medium">{context.item ? t(context.item) : "BoxUI"}</span>
+          </div>
+          <AppearanceMenu />
         </header>
         <main className="mx-auto flex min-w-0 w-full max-w-screen-2xl flex-1 flex-col gap-4 p-4 md:p-6"><Outlet /></main>
       </SidebarInset>

@@ -48,7 +48,7 @@ export const zh = {
       pending: "该模块将在当前实施计划中接入现有 API。",
     },
     settings: {
-      title: "应用设置", appearanceTitle: "外观与语言", appearanceDescription: "偏好仅保存在当前浏览器。",
+      title: "应用设置", appearanceMenu: "外观", appearanceTitle: "外观与语言", appearanceDescription: "偏好仅保存在当前浏览器。",
       theme: "主题", light: "浅色", dark: "深色", system: "跟随系统", language: "语言",
       accountTitle: "登录与安全", accountDescription: "登录用户名由 BOXUI_USERNAME 或启动参数管理，前端不可轮换。",
       defaultPasswordTitle: "默认密码仍在使用", defaultPasswordDescription: "请立即轮换管理员密码。",

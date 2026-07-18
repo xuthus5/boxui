@@ -48,7 +48,7 @@ export const en = {
       pending: "This module will connect to the existing API during the current implementation plan.",
     },
     settings: {
-      title: "Application Settings", appearanceTitle: "Appearance and Language", appearanceDescription: "Preferences are stored only in this browser.",
+      title: "Application Settings", appearanceMenu: "Appearance", appearanceTitle: "Appearance and Language", appearanceDescription: "Preferences are stored only in this browser.",
       theme: "Theme", light: "Light", dark: "Dark", system: "System", language: "Language",
       accountTitle: "Login and Security", accountDescription: "The login username is managed by BOXUI_USERNAME or startup flags and cannot be rotated here.",
       defaultPasswordTitle: "Default password is still active", defaultPasswordDescription: "Rotate the administrator password immediately.",

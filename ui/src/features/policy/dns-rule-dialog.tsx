@@ -11,7 +11,7 @@ import { JsonEditor } from "@/features/config/json-editor"
 import { useConfigQuery } from "@/features/config/config-hooks"
 import { optionsWithCurrent, useDNSDialogState } from "@/features/policy/dns-dialog-state"
 import { PolicyFormFields } from "@/features/policy/policy-form-fields"
-import { changeDNSAction, changeDNSRuleType, dnsActionFields, dnsActions, dnsRuleMatchFields } from "@/features/policy/dns-form-model"
+import { applyDNSRuleFieldChange, changeDNSAction, changeDNSRuleType, dnsActionFields, dnsActions, dnsRuleMatchFields } from "@/features/policy/dns-form-model"
 import {
   isNonEmptyJsonObjectArray,
   policyConfigTags,
@@ -94,16 +94,21 @@ function FormFields({ state, fields, context }: {
   context?: import("@/features/policy/policy-form-model").PolicyFormContext
 }) {
   return <PolicyFormFields fields={fields} object={state.object} namespace="policy.dns" revision={state.revision}
-    context={context} onChange={state.update} onFieldValidityChange={state.updateValidity} transformField={state.transform} />
+    context={context} onChange={(next) => state.update(applyDNSRuleFieldChange(state.object, next))}
+    onFieldValidityChange={state.updateValidity} transformField={state.transform} />
 }
 
-function ActionFields({ state, serverTags }: { state: ReturnType<typeof useDNSDialogState>; serverTags: readonly string[] }) {
+function ActionFields({ state, serverTags, context }: {
+  state: ReturnType<typeof useDNSDialogState>; serverTags: readonly string[]
+  context?: import("@/features/policy/policy-form-model").PolicyFormContext
+}) {
   const object = state.object!
   const action = String(object.action ?? "route")
   const fields = action === "route" ? dnsActionFields.route.filter((field) => field.path !== "server") : dnsActionFields[action] ?? []
+  const actionContext = { ...context, dnsServerTags: serverTags ? [...serverTags] : context?.dnsServerTags }
   return <FieldGroup className="gap-4"><ActionTypeField object={object} onChange={state.update} />
     {action === "route" ? <RouteServerField object={object} tags={serverTags} onChange={state.update} /> : null}
-    <FormFields state={state} fields={fields} />
+    <FormFields state={state} fields={fields} context={actionContext} />
   </FieldGroup>
 }
 
@@ -139,7 +144,7 @@ function RuleTabs({ state, title, serverTags }: {
     </FieldGroup></TabsContent>
     <TabsContent value="domain" className="pt-4" keepMounted><FormFields state={state} context={context} fields={logical ? [] : domainFields} /></TabsContent>
     <TabsContent value="process" className="pt-4" keepMounted><FormFields state={state} context={context} fields={logical ? [] : processFields} /></TabsContent>
-    <TabsContent value="action" className="pt-4" keepMounted><ActionFields state={state} serverTags={serverTags} /></TabsContent>
+    <TabsContent value="action" className="pt-4" keepMounted><ActionFields state={state} serverTags={serverTags} context={context} /></TabsContent>
     <TabsContent value="advanced" className="pt-4" keepMounted><AdvancedJSON value={state.value} title={title}
       revision={state.editorRevision} onChange={state.updateJSON} /></TabsContent>
   </Tabs>

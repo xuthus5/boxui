@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  applyDNSFakeIPFieldChange,
+  applyDNSGlobalFieldChange,
+  applyDNSRuleFieldChange,
+  applyDNSServerFieldChange,
   changeDNSAction,
   changeDNSRuleType,
   changeDNSServerType,
@@ -9,6 +13,7 @@ import {
   dnsGlobalFields,
   dnsRuleMatchFields,
   dnsRules,
+  dnsServerFields,
   dnsServers,
   dnsServerTypes,
   inferDNSServerType,
@@ -24,10 +29,11 @@ const paths = (fields: readonly { path: string }[]) => fields.map((field) => fie
 describe("DNS form metadata", () => {
   it("models DNS globals and legacy FakeIP fields", () => {
     expect(paths(dnsGlobalFields)).toEqual([
-      "final", "strategy", "disable_cache", "disable_expire", "independent_cache",
-      "cache_capacity", "client_subnet", "reverse_mapping",
+      "final", "strategy", "client_subnet", "disable_cache", "disable_expire", "independent_cache",
+      "cache_capacity", "reverse_mapping",
     ])
     expect(dnsGlobalFields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: "final", kind: "ref", ref: "dns-server" }),
       expect.objectContaining({ path: "strategy", kind: "select" }),
       expect.objectContaining({ path: "disable_cache", kind: "boolean" }),
       expect.objectContaining({ path: "cache_capacity", kind: "number" }),
@@ -35,8 +41,8 @@ describe("DNS form metadata", () => {
     ]))
     expect(legacyFakeIPFields).toEqual([
       expect.objectContaining({ path: "fakeip.enabled", kind: "boolean" }),
-      expect.objectContaining({ path: "fakeip.inet4_range" }),
-      expect.objectContaining({ path: "fakeip.inet6_range" }),
+      expect.objectContaining({ path: "fakeip.inet4_range", when: { path: "fakeip.enabled", is: true } }),
+      expect.objectContaining({ path: "fakeip.inet6_range", when: { path: "fakeip.enabled", is: true } }),
     ])
   })
 
@@ -263,5 +269,90 @@ describe("dns match field kinds", () => {
     expect(dnsRuleMatchFields.find((field) => field.path === "rule_set")).toMatchObject({ kind: "ref-multi", ref: "rule-set" })
     expect(dnsRuleMatchFields.find((field) => field.path === "ip_version")).toMatchObject({ kind: "select", options: ["4", "6"] })
     expect(dnsRuleMatchFields.find((field) => field.path === "network")).toMatchObject({ kind: "network-multi" })
+  })
+})
+
+describe("DNS hierarchical field pruning", () => {
+  it("prunes FakeIP ranges when disabled and drops false enabled flag", () => {
+    const next = applyDNSFakeIPFieldChange({}, {
+      fakeip: { enabled: false, inet4_range: "198.18.0.0/15", inet6_range: "fc00::/18", future: 1 },
+    })
+    expect(next).toEqual({ fakeip: { future: 1 } })
+  })
+
+  it("keeps FakeIP ranges while enabled", () => {
+    expect(applyDNSFakeIPFieldChange({}, {
+      fakeip: { enabled: true, inet4_range: "198.18.0.0/15" },
+    })).toEqual({ fakeip: { enabled: true, inet4_range: "198.18.0.0/15" } })
+  })
+
+  it("prunes TLS and domain-resolver children when parents are off", () => {
+    const next = applyDNSServerFieldChange("https", {
+      type: "https",
+      tag: "dns",
+      server: "dns.example",
+      tls: { enabled: false, server_name: "dns.example", insecure: true },
+      domain_resolver: { strategy: "prefer_ipv4", rewrite_ttl: 60 },
+      disable_tcp_keep_alive: true,
+      tcp_keep_alive: "5m",
+    })
+    expect(next.tls).toEqual({ enabled: false })
+    expect(next.domain_resolver).toBeUndefined()
+    expect(next.tcp_keep_alive).toBeUndefined()
+  })
+
+  it("keeps TLS children and resolver children when parents are on", () => {
+    const next = applyDNSServerFieldChange("tls", {
+      type: "tls",
+      tag: "dns",
+      server: "dns.example",
+      tls: { enabled: true, server_name: "dns.example" },
+      domain_resolver: { server: "local", strategy: "prefer_ipv4" },
+    })
+    expect(next.tls).toEqual({ enabled: true, server_name: "dns.example" })
+    expect(next.domain_resolver).toEqual({ server: "local", strategy: "prefer_ipv4" })
+  })
+
+  it("models server field hierarchy metadata for dialer and TLS", () => {
+    const https = dnsServerFields.https
+    expect(https.find((field) => field.path === "tls.server_name")).toMatchObject({
+      when: { path: "tls.enabled", is: true },
+    })
+    expect(https.find((field) => field.path === "domain_resolver.strategy")).toMatchObject({
+      when: { path: "domain_resolver.server" },
+    })
+    expect(https.find((field) => field.path === "detour")).toMatchObject({ kind: "ref", ref: "outbound" })
+    expect(https.find((field) => field.path === "bind_interface")).toMatchObject({ kind: "network-interface" })
+  })
+
+  it("retains unknown rule keys while applying rule field prune", () => {
+    const next = applyDNSRuleFieldChange(
+      { action: "reject" },
+      { action: "reject", method: "drop", custom: true },
+    )
+    expect(next).toEqual({ action: "reject", method: "drop", custom: true })
+  })
+
+  it("leaves global DNS fields untouched by prune helpers", () => {
+    expect(applyDNSGlobalFieldChange({}, { final: "dns", strategy: "prefer_ipv4", custom: true }))
+      .toEqual({ final: "dns", strategy: "prefer_ipv4", custom: true })
+  })
+})
+
+describe("DNS summary edge branches", () => {
+  it("covers no-op action change and string list helpers", () => {
+    const rule = { action: "reject", method: "drop" }
+    expect(changeDNSAction(rule, "reject")).toBe(rule)
+    expect(summarizeDNSServer({ type: "hosts", tag: "h", path: "/etc/hosts" }).detail).toContain("path /etc/hosts")
+    expect(summarizeDNSServer({ type: "udp", tag: "x", server: "1.1.1.1", server_port: Number.NaN }).detail)
+      .toContain("1.1.1.1")
+    expect(summarizeDNSServer({ type: "fakeip", tag: "f" }).detail).toContain("tag f")
+  })
+
+  it("covers empty action fields and unknown server type prune", () => {
+    expect(applyDNSRuleFieldChange({}, { action: "unknown-action", custom: 1 }))
+      .toEqual({ action: "unknown-action", custom: 1 })
+    expect(applyDNSServerFieldChange("future", { type: "future", payload: true }))
+      .toEqual({ type: "future", payload: true })
   })
 })

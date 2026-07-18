@@ -1,6 +1,7 @@
 import {
   getPolicyPath,
   isJsonObject,
+  pruneInvisiblePolicyFields,
   setPolicyPath,
   type JsonObject,
   type PolicyFieldSpec,
@@ -17,25 +18,26 @@ import {
   transitionCleanupFields,
 } from "@/features/policy/dns-form-cleanup"
 
-export { dnsServerFields } from "@/features/policy/dns-form-server-fields"
+import { dnsServerFields } from "@/features/policy/dns-form-server-fields"
+export { dnsServerFields }
 
 const domainStrategies = ["prefer_ipv4", "prefer_ipv6", "ipv4_only", "ipv6_only"] as const
 
 export const dnsGlobalFields = [
-  { path: "final", label: "final" },
-  { path: "strategy", label: "strategy", kind: "select", options: domainStrategies },
-  { path: "disable_cache", label: "disableCache", kind: "boolean" },
-  { path: "disable_expire", label: "disableExpire", kind: "boolean" },
-  { path: "independent_cache", label: "independentCache", kind: "boolean" },
-  { path: "cache_capacity", label: "cacheCapacity", kind: "number" },
-  { path: "client_subnet", label: "clientSubnet" },
-  { path: "reverse_mapping", label: "reverseMapping", kind: "boolean" },
+  { path: "final", label: "final", kind: "ref", ref: "dns-server", section: "basic" },
+  { path: "strategy", label: "strategy", kind: "select", options: domainStrategies, section: "basic" },
+  { path: "client_subnet", label: "clientSubnet", section: "basic" },
+  { path: "disable_cache", label: "disableCache", kind: "boolean", section: "cache" },
+  { path: "disable_expire", label: "disableExpire", kind: "boolean", section: "cache" },
+  { path: "independent_cache", label: "independentCache", kind: "boolean", section: "cache" },
+  { path: "cache_capacity", label: "cacheCapacity", kind: "number", section: "cache" },
+  { path: "reverse_mapping", label: "reverseMapping", kind: "boolean", section: "cache" },
 ] as const satisfies readonly PolicyFieldSpec[]
 
 export const legacyFakeIPFields = [
-  { path: "fakeip.enabled", label: "fakeIPEnabled", kind: "boolean" },
-  { path: "fakeip.inet4_range", label: "fakeIPIPv4Range" },
-  { path: "fakeip.inet6_range", label: "fakeIPIPv6Range" },
+  { path: "fakeip.enabled", label: "fakeIPEnabled", kind: "boolean", section: "fakeip" },
+  { path: "fakeip.inet4_range", label: "fakeIPIPv4Range", section: "fakeip", when: { path: "fakeip.enabled", is: true } },
+  { path: "fakeip.inet6_range", label: "fakeIPIPv6Range", section: "fakeip", when: { path: "fakeip.enabled", is: true } },
 ] as const satisfies readonly PolicyFieldSpec[]
 
 export const dnsServerTypes = [
@@ -43,64 +45,64 @@ export const dnsServerTypes = [
 ] as const
 
 export const dnsRuleMatchFields = [
-  { path: "type", label: "type", kind: "select", options: ["default", "logical"] },
-  { path: "inbound", label: "inbound", kind: "ref-multi", ref: "inbound" },
-  { path: "ip_version", label: "ipVersion", kind: "select", options: ["4", "6"] },
-  { path: "query_type", label: "queryType", kind: "list" },
-  { path: "network", label: "network", kind: "network-multi" },
-  { path: "auth_user", label: "authUser", kind: "list" },
-  { path: "protocol", label: "protocol", kind: "list" },
-  { path: "domain", label: "domain", kind: "list" },
-  { path: "domain_suffix", label: "domainSuffix", kind: "list" },
-  { path: "domain_keyword", label: "domainKeyword", kind: "list" },
-  { path: "domain_regex", label: "domainRegex", kind: "list" },
-  { path: "source_ip_cidr", label: "sourceIPCIDR", kind: "list" },
-  { path: "source_ip_is_private", label: "sourceIPIsPrivate", kind: "boolean" },
-  { path: "ip_cidr", label: "ipCIDR", kind: "list" },
-  { path: "ip_is_private", label: "ipIsPrivate", kind: "boolean" },
-  { path: "source_port", label: "sourcePort", kind: "number-list" },
-  { path: "source_port_range", label: "sourcePortRange", kind: "list" },
-  { path: "port", label: "port", kind: "number-list" },
-  { path: "port_range", label: "portRange", kind: "list" },
-  { path: "process_name", label: "processName", kind: "list" },
-  { path: "process_path", label: "processPath", kind: "list" },
-  { path: "process_path_regex", label: "processPathRegex", kind: "list" },
-  { path: "package_name", label: "packageName", kind: "list" },
-  { path: "user", label: "user", kind: "list" },
-  { path: "user_id", label: "userID", kind: "number-list" },
-  { path: "outbound", label: "outbound", kind: "list" },
-  { path: "clash_mode", label: "clashMode" },
-  { path: "rule_set", label: "ruleSet", kind: "ref-multi", ref: "rule-set" },
-  { path: "rule_set_ip_cidr_match_source", label: "ruleSetIPCIDRMatchSource", kind: "boolean" },
-  { path: "network_type", label: "networkType", kind: "list" },
-  { path: "network_is_expensive", label: "networkIsExpensive", kind: "boolean" },
-  { path: "network_is_constrained", label: "networkIsConstrained", kind: "boolean" },
-  { path: "wifi_ssid", label: "wifiSSID", kind: "list" },
-  { path: "wifi_bssid", label: "wifiBSSID", kind: "list" },
-  { path: "invert", label: "invert", kind: "boolean" },
+  { path: "type", label: "type", kind: "select", options: ["default", "logical"], section: "basic" },
+  { path: "inbound", label: "inbound", kind: "ref-multi", ref: "inbound", section: "basic" },
+  { path: "ip_version", label: "ipVersion", kind: "select", options: ["4", "6"], section: "basic" },
+  { path: "query_type", label: "queryType", kind: "list", section: "basic" },
+  { path: "network", label: "network", kind: "network-multi", section: "basic" },
+  { path: "auth_user", label: "authUser", kind: "list", section: "basic" },
+  { path: "protocol", label: "protocol", kind: "list", section: "basic" },
+  { path: "domain", label: "domain", kind: "list", section: "domain" },
+  { path: "domain_suffix", label: "domainSuffix", kind: "list", section: "domain" },
+  { path: "domain_keyword", label: "domainKeyword", kind: "list", section: "domain" },
+  { path: "domain_regex", label: "domainRegex", kind: "list", section: "domain" },
+  { path: "source_ip_cidr", label: "sourceIPCIDR", kind: "list", section: "domain" },
+  { path: "source_ip_is_private", label: "sourceIPIsPrivate", kind: "boolean", section: "domain" },
+  { path: "ip_cidr", label: "ipCIDR", kind: "list", section: "domain" },
+  { path: "ip_is_private", label: "ipIsPrivate", kind: "boolean", section: "domain" },
+  { path: "source_port", label: "sourcePort", kind: "number-list", section: "process" },
+  { path: "source_port_range", label: "sourcePortRange", kind: "list", section: "process" },
+  { path: "port", label: "port", kind: "number-list", section: "process" },
+  { path: "port_range", label: "portRange", kind: "list", section: "process" },
+  { path: "process_name", label: "processName", kind: "list", section: "process" },
+  { path: "process_path", label: "processPath", kind: "list", section: "process" },
+  { path: "process_path_regex", label: "processPathRegex", kind: "list", section: "process" },
+  { path: "package_name", label: "packageName", kind: "list", section: "process" },
+  { path: "user", label: "user", kind: "list", section: "process" },
+  { path: "user_id", label: "userID", kind: "number-list", section: "process" },
+  { path: "outbound", label: "outbound", kind: "ref-multi", ref: "outbound", section: "process" },
+  { path: "clash_mode", label: "clashMode", section: "process" },
+  { path: "rule_set", label: "ruleSet", kind: "ref-multi", ref: "rule-set", section: "process" },
+  { path: "rule_set_ip_cidr_match_source", label: "ruleSetIPCIDRMatchSource", kind: "boolean", section: "process" },
+  { path: "network_type", label: "networkType", kind: "list", section: "process" },
+  { path: "network_is_expensive", label: "networkIsExpensive", kind: "boolean", section: "process" },
+  { path: "network_is_constrained", label: "networkIsConstrained", kind: "boolean", section: "process" },
+  { path: "wifi_ssid", label: "wifiSSID", kind: "list", section: "process" },
+  { path: "wifi_bssid", label: "wifiBSSID", kind: "list", section: "process" },
+  { path: "invert", label: "invert", kind: "boolean", section: "basic" },
 ] as const satisfies readonly PolicyFieldSpec[]
 
 export const dnsActions = ["route", "route-options", "reject", "predefined"] as const
 
 const routeOptionFields = [
-  { path: "strategy", label: "strategy", kind: "select", options: domainStrategies },
-  { path: "disable_cache", label: "disableCache", kind: "boolean" },
-  { path: "rewrite_ttl", label: "rewriteTTL", kind: "number" },
-  { path: "client_subnet", label: "clientSubnet" },
+  { path: "strategy", label: "strategy", kind: "select", options: domainStrategies, section: "action" },
+  { path: "disable_cache", label: "disableCache", kind: "boolean", section: "action" },
+  { path: "rewrite_ttl", label: "rewriteTTL", kind: "number", section: "action" },
+  { path: "client_subnet", label: "clientSubnet", section: "action" },
 ] as const satisfies readonly PolicyFieldSpec[]
 
 export const dnsActionFields: Record<string, readonly PolicyFieldSpec[]> = {
-  route: [{ path: "server", label: "server" }, ...routeOptionFields],
+  route: [{ path: "server", label: "server", kind: "ref", ref: "dns-server", section: "action" }, ...routeOptionFields],
   "route-options": routeOptionFields,
   reject: [
-    { path: "method", label: "rejectMethod", kind: "select", options: ["default", "drop", "reply"] },
-    { path: "no_drop", label: "rejectNoDrop", kind: "boolean" },
+    { path: "method", label: "rejectMethod", kind: "select", options: ["default", "drop", "reply"], section: "action" },
+    { path: "no_drop", label: "rejectNoDrop", kind: "boolean", section: "action" },
   ],
   predefined: [
-    { path: "rcode", label: "rcode" },
-    { path: "answer", label: "answer", kind: "list" },
-    { path: "ns", label: "nameServer", kind: "list" },
-    { path: "extra", label: "extra", kind: "list" },
+    { path: "rcode", label: "rcode", section: "action" },
+    { path: "answer", label: "answer", kind: "list", section: "action" },
+    { path: "ns", label: "nameServer", kind: "list", section: "action" },
+    { path: "extra", label: "extra", kind: "list", section: "action" },
   ],
 }
 
@@ -293,4 +295,25 @@ export function summarizeDNSRule(rule: JsonObject, labels = defaultRuleSummaryLa
   const action = String(rule.action ?? "route")
   const target = action === "route" && typeof rule.server === "string" && rule.server ? ` · ${rule.server}` : ""
   return { matches, action: `${action}${target}` }
+}
+
+export function applyDNSGlobalFieldChange(_object: JsonObject, next: JsonObject) {
+  return pruneInvisiblePolicyFields(next, dnsGlobalFields)
+}
+
+export function applyDNSFakeIPFieldChange(_object: JsonObject, next: JsonObject) {
+  const normalized = getPolicyPath(next, "fakeip.enabled") === false
+    ? setPolicyPath(next, "fakeip.enabled", undefined)
+    : next
+  return pruneInvisiblePolicyFields(normalized, legacyFakeIPFields)
+}
+
+export function applyDNSRuleFieldChange(object: JsonObject, next: JsonObject) {
+  const action = String(next.action ?? object.action ?? "route")
+  const actionFields = dnsActionFields[action] ?? []
+  return pruneInvisiblePolicyFields(next, [...dnsRuleMatchFields, ...actionFields])
+}
+
+export function applyDNSServerFieldChange(type: string, next: JsonObject) {
+  return pruneInvisiblePolicyFields(next, dnsServerFields[type] ?? [])
 }

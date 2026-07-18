@@ -18,6 +18,10 @@ function renderDialog(ui: React.ReactElement) {
   return renderApp(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>)
 }
 
+function renderDNS(ui: React.ReactElement) {
+  return renderDialog(ui)
+}
+
 
 function GlobalHarness({ kind }: { kind: "route" | "dns" }) {
   const [object, setObject] = useState<JsonObject>({})
@@ -79,8 +83,8 @@ describe("dialog numeric validation", () => {
   }, 15_000)
 
   it("gates DNS server fields", async () => {
-    renderApp(<DNSServerDialog open title="编辑 DNS 服务器"
-      item={{ type: "udp", tag: "dns", server: "dns.example" }} onOpenChange={vi.fn()} onSave={vi.fn()} />)
+    renderDNS(<DNSServerDialog open title="编辑 DNS 服务器"
+      item={{ type: "udp", tag: "dns", server: "dns.example", domain_resolver: { server: "local" } }} onOpenChange={vi.fn()} onSave={vi.fn()} />)
     await expectInvalidThenValid("服务器端口", "65536", "53")
     await userEvent.click(screen.getByRole("tab", { name: "拨号与解析" }))
     await expectInvalidThenValid("解析重写 TTL", "-1", "60")
@@ -120,7 +124,7 @@ describe("legacy octal routing marks", () => {
 
   it("preserves DNS routing_mark through the server Dialog", async () => {
     const onSave = vi.fn()
-    renderApp(<DNSServerDialog open title="编辑 DNS 服务器"
+    renderDNS(<DNSServerDialog open title="编辑 DNS 服务器"
       item={{ type: "udp", tag: "dns", server: "dns.example" }} onOpenChange={vi.fn()} onSave={onSave} />)
     await userEvent.click(screen.getByRole("tab", { name: "拨号与解析" }))
     fireEvent.change(screen.getByLabelText("路由标记"), { target: { value: "0173" } })

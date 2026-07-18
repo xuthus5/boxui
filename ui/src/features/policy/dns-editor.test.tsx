@@ -2,7 +2,7 @@ import { useState } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import App from "@/App"
 import { DNSRuleDialog } from "@/features/policy/dns-rule-dialog"
@@ -11,11 +11,16 @@ import { DNSVisualEditor } from "@/features/policy/dns-visual-editor"
 import type { JsonObject } from "@/features/policy/policy-form-model"
 import type { PolicyVisualEditorProps } from "@/features/policy/policy-page"
 import { sessionStore } from "@/lib/session"
+import { installMockAPI } from "@/test/mock-api"
 import { renderApp } from "@/test/render"
 
 function renderDNS(ui: React.ReactElement) {
   return renderApp(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>)
 }
+
+beforeEach(() => {
+  installMockAPI()
+})
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -53,7 +58,7 @@ function expectEveryFieldGrouped() {
 
 describe("DNS globals and legacy FakeIP", () => {
   it("edits every global field while retaining unknown keys", async () => {
-    renderApp(<EditorHarness initial={{ custom: { keep: true } }} />)
+    renderDNS(<EditorHarness initial={{ custom: { keep: true } }} />)
     fireEvent.change(screen.getByLabelText("最终 DNS 服务器"), { target: { value: "remote" } })
     await choose("域名策略", "prefer_ipv4")
     for (const label of ["禁用缓存", "禁用缓存过期", "独立缓存", "反向映射"]) {
@@ -70,20 +75,18 @@ describe("DNS globals and legacy FakeIP", () => {
   })
 
   it("creates FakeIP only after editing and prunes known paths without deleting unknown siblings", async () => {
-    renderApp(<EditorHarness initial={{}} />)
+    renderDNS(<EditorHarness initial={{}} />)
     expect(state()).not.toHaveProperty("fakeip")
     await userEvent.click(screen.getByRole("switch", { name: "启用旧式 FakeIP" }))
     fireEvent.change(screen.getByLabelText("FakeIP IPv4 范围"), { target: { value: "198.18.0.0/15" } })
     fireEvent.change(screen.getByLabelText("FakeIP IPv6 范围"), { target: { value: "fc00::/18" } })
     expect(state().fakeip).toEqual({ enabled: true, inet4_range: "198.18.0.0/15", inet6_range: "fc00::/18" })
     await userEvent.click(screen.getByRole("switch", { name: "启用旧式 FakeIP" }))
-    fireEvent.change(screen.getByLabelText("FakeIP IPv4 范围"), { target: { value: "" } })
-    fireEvent.change(screen.getByLabelText("FakeIP IPv6 范围"), { target: { value: "" } })
+    expect(screen.queryByLabelText("FakeIP IPv4 范围")).not.toBeInTheDocument()
     expect(state()).not.toHaveProperty("fakeip")
 
-    renderApp(<EditorHarness initial={{ fakeip: { enabled: true, inet4_range: "198.18.0.0/15", future: 1 } }} />)
+    renderDNS(<EditorHarness initial={{ fakeip: { enabled: true, inet4_range: "198.18.0.0/15", future: 1 } }} />)
     await userEvent.click(screen.getAllByRole("switch", { name: "启用旧式 FakeIP" })[1])
-    fireEvent.change(screen.getAllByLabelText("FakeIP IPv4 范围")[1], { target: { value: "" } })
     expect(screen.getAllByLabelText("dns state")[1]).toHaveTextContent('"fakeip":{"future":1}')
   })
 })
@@ -92,7 +95,7 @@ describe("DNS server dialog", () => {
   it("preserves untouched legacy JSON exactly and changes shape only after type selection", async () => {
     const legacy = { tag: "legacy", address: "https://dns.google/dns-query", address_resolver: "local", custom: { keep: true } }
     const onSave = vi.fn()
-    renderApp(<DNSServerDialog open title="编辑 DNS 服务器" item={legacy} onOpenChange={vi.fn()} onSave={onSave} />)
+    renderDNS(<DNSServerDialog open title="编辑 DNS 服务器" item={legacy} onOpenChange={vi.fn()} onSave={onSave} />)
     await userEvent.click(screen.getByRole("button", { name: "保存" }))
     expect(onSave).toHaveBeenLastCalledWith(legacy)
     await choose("服务器类型", "udp")
@@ -108,7 +111,7 @@ describe("DNS server dialog", () => {
     ["https", "HTTP Headers"], ["h3", "HTTP Headers"], ["dhcp", "网络接口"],
     ["fakeip", "FakeIP IPv4 范围"],
   ])("shows fields for %s and hides unsupported TLS/dialer fields", async (type, label) => {
-    renderApp(<DNSServerDialog open title="新增 DNS 服务器" item={{ type, tag: "dns" }} onOpenChange={vi.fn()} onSave={vi.fn()} />)
+    renderDNS(<DNSServerDialog open title="新增 DNS 服务器" item={{ type, tag: "dns" }} onOpenChange={vi.fn()} onSave={vi.fn()} />)
     const tab = label === "启用 TLS" || label === "HTTP Headers" ? "TLS 与 HTTP"
       : ["优先 Go 解析器", "Hosts 路径", "网络接口", "FakeIP IPv4 范围"].includes(label) ? "类型专属" : "基础"
     if (tab !== "基础") await userEvent.click(screen.getByRole("tab", { name: tab }))
@@ -120,7 +123,7 @@ describe("DNS server dialog", () => {
 
   it("gates required values, HTTPS headers, and routing mark union with visible invalid feedback", async () => {
     const onSave = vi.fn()
-    renderApp(<DNSServerDialog open title="新增 DNS 服务器" item={{ type: "https" }} onOpenChange={vi.fn()} onSave={onSave} />)
+    renderDNS(<DNSServerDialog open title="新增 DNS 服务器" item={{ type: "https" }} onOpenChange={vi.fn()} onSave={onSave} />)
     expect(screen.getByRole("button", { name: "保存" })).toBeDisabled()
     fireEvent.change(screen.getByLabelText("Tag"), { target: { value: "remote" } })
     fireEvent.change(screen.getByLabelText("服务器地址"), { target: { value: "dns.example" } })
@@ -145,7 +148,7 @@ describe("DNS server dialog", () => {
     [{ type: "udp", tag: "remote" }, "服务器地址", "1.1.1.1"],
     [{ type: "fakeip", tag: "fake" }, "FakeIP IPv4 范围", "198.18.0.0/15"],
   ] as const)("requires type-specific server values for %j", async (item, label, value) => {
-    renderApp(<DNSServerDialog open title="新增 DNS 服务器" item={item} onOpenChange={vi.fn()} onSave={vi.fn()} />)
+    renderDNS(<DNSServerDialog open title="新增 DNS 服务器" item={item} onOpenChange={vi.fn()} onSave={vi.fn()} />)
     expect(screen.getByRole("button", { name: "保存" })).toBeDisabled()
     expect(screen.getByText("请填写当前服务器类型所需的 Tag 和地址信息。")).toBeInTheDocument()
     if (["网络接口", "FakeIP IPv4 范围"].includes(label)) {
@@ -157,12 +160,11 @@ describe("DNS server dialog", () => {
 
   it("keeps the DHCP interface optional while saving it when provided", async () => {
     const onSave = vi.fn()
-    renderApp(<DNSServerDialog open title="新增 DNS 服务器" item={{ type: "dhcp", tag: "lan" }}
+    renderDNS(<DNSServerDialog open title="新增 DNS 服务器" item={{ type: "dhcp", tag: "lan" }}
       onOpenChange={vi.fn()} onSave={onSave} />)
     expect(screen.getByRole("button", { name: "保存" })).toBeEnabled()
     await userEvent.click(screen.getByRole("tab", { name: "类型专属" }))
-    expect(screen.getByLabelText("网络接口")).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText("网络接口"), { target: { value: "eth0" } })
+    await choose("网络接口", "eth0 (10.0.0.2)")
     await userEvent.click(screen.getByRole("button", { name: "保存" }))
     expect(onSave).toHaveBeenCalledWith({ type: "dhcp", tag: "lan", interface: "eth0" })
   })
@@ -170,7 +172,7 @@ describe("DNS server dialog", () => {
   it("keeps unknown types in Advanced JSON", async () => {
     const item = { type: "future", tag: "custom", payload: { enabled: true } }
     const onSave = vi.fn()
-    renderApp(<DNSServerDialog open title="编辑 DNS 服务器" item={item} onOpenChange={vi.fn()} onSave={onSave} />)
+    renderDNS(<DNSServerDialog open title="编辑 DNS 服务器" item={item} onOpenChange={vi.fn()} onSave={onSave} />)
     await userEvent.click(screen.getByRole("combobox", { name: "服务器类型" }))
     expect(await screen.findByRole("option", { name: "future" })).toBeInTheDocument()
     await userEvent.keyboard("{Escape}")
@@ -183,7 +185,7 @@ describe("DNS server dialog", () => {
 
 describe("DNS server cards", () => {
   it("summarizes tag, type, endpoint, port, detour, and strategy", () => {
-    renderApp(<EditorHarness initial={{ servers: [{
+    renderDNS(<EditorHarness initial={{ servers: [{
       type: "https", tag: "remote", server: "dns.example", server_port: 443,
       detour: "direct", strategy: "prefer_ipv4",
     }] }} />)
@@ -193,7 +195,7 @@ describe("DNS server cards", () => {
 
   it("adds, summarizes, copies deeply, and deletes after confirmation", async () => {
     const user = userEvent.setup()
-    renderApp(<EditorHarness initial={{}} />)
+    renderDNS(<EditorHarness initial={{}} />)
     expect(screen.getByText("暂无 DNS 服务器")).toBeInTheDocument()
     await user.click(screen.getAllByRole("button", { name: "新增 DNS 服务器" })[0])
     fireEvent.change(screen.getByLabelText("Tag"), { target: { value: "google" } })
@@ -254,7 +256,7 @@ describe("DNS rule dialog and cards", () => {
 
   it("copies deeply, moves with boundaries, and deletes after confirmation", async () => {
     const user = userEvent.setup()
-    renderApp(<EditorHarness initial={{ servers: [{ tag: "dns", address: "local" }], rules: [
+    renderDNS(<EditorHarness initial={{ servers: [{ tag: "dns", address: "local" }], rules: [
       { domain_suffix: ["one.example"], server: "dns" }, { action: "reject", domain: ["two.example"] },
     ] }} />)
     expect(screen.getByText("one.example")).toBeInTheDocument()
@@ -289,7 +291,7 @@ describe("DNS page integration", () => {
   })
 
   it("keeps every direct Dialog Field inside a FieldGroup", async () => {
-    renderApp(<DNSServerDialog open title="编辑 DNS 服务器" item={{ type: "https", tag: "dns", server: "example.com" }}
+    renderDNS(<DNSServerDialog open title="编辑 DNS 服务器" item={{ type: "https", tag: "dns", server: "example.com" }}
       onOpenChange={vi.fn()} onSave={vi.fn()} />)
     expectEveryFieldGrouped()
     await userEvent.click(screen.getByRole("tab", { name: "高级 JSON" }))

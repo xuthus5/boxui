@@ -1,18 +1,21 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { DNSRuleDialog } from "@/features/policy/dns-rule-dialog"
 import { DNSServerDialog } from "@/features/policy/dns-server-dialog"
 import type { JsonObject } from "@/features/policy/policy-form-model"
+import { installMockAPI } from "@/test/mock-api"
 import { renderApp } from "@/test/render"
 
 function renderDNS(ui: React.ReactElement) {
   return renderApp(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>)
 }
 
-afterEach(() => vi.restoreAllMocks())
+beforeEach(() => { installMockAPI() })
+
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 const dialerLabels = [
   "前置出站", "绑定接口", "IPv4 绑定地址", "IPv6 绑定地址", "绑定地址时忽略端口",
@@ -50,11 +53,20 @@ function expectLabels(panel: HTMLElement, labels: readonly string[]) {
 }
 
 function serverItem(type: string): JsonObject {
-  if (type === "legacy") return { tag: "dns", address: "local" }
-  if (["udp", "tcp", "tls", "quic", "https", "h3"].includes(type)) {
-    return { type, tag: "dns", server: "dns.example" }
+  const dialerSeed = {
+    domain_resolver: { server: "local" },
+  }
+  if (type === "legacy") {
+    return { tag: "dns", address: "local", address_resolver: "local", strategy: "prefer_ipv4", detour: "direct", client_subnet: "1.1.1.1/32", address_strategy: "prefer_ipv4", address_fallback_delay: "300ms" }
+  }
+  if (["udp", "tcp"].includes(type)) {
+    return { type, tag: "dns", server: "dns.example", ...dialerSeed }
+  }
+  if (["tls", "quic", "https", "h3"].includes(type)) {
+    return { type, tag: "dns", server: "dns.example", tls: { enabled: true }, ...dialerSeed }
   }
   if (type === "fakeip") return { type, tag: "dns", inet4_range: "198.18.0.0/15" }
+  if (type === "local" || type === "dhcp") return { type, tag: "dns", ...dialerSeed }
   return { type, tag: "dns" }
 }
 
@@ -93,13 +105,13 @@ describe("DNS server field matrix", () => {
     ["hosts", "类型专属", ["Hosts 路径", "预定义 Hosts"]],
     ["fakeip", "类型专属", ["FakeIP IPv4 范围", "FakeIP IPv6 范围"]],
   ] as const)("renders %s approved fields in %s", (type, tab, labels) => {
-    renderApp(<DNSServerDialog open title="编辑 DNS 服务器" item={serverItem(type)}
+    renderDNS(<DNSServerDialog open title="编辑 DNS 服务器" item={serverItem(type)}
       onOpenChange={vi.fn()} onSave={vi.fn()} />)
     expectLabels(tabPanel(tab), labels)
   })
 
   it("keeps an unknown current type and its Advanced JSON", async () => {
-    renderApp(<DNSServerDialog open title="编辑 DNS 服务器" item={{ type: "future", tag: "dns", payload: true }}
+    renderDNS(<DNSServerDialog open title="编辑 DNS 服务器" item={{ type: "future", tag: "dns", payload: true }}
       onOpenChange={vi.fn()} onSave={vi.fn()} />)
     await userEvent.click(screen.getByRole("combobox", { name: "服务器类型" }))
     expect(await screen.findByRole("option", { name: "future" })).toBeInTheDocument()
@@ -134,7 +146,7 @@ describe("DNS Advanced JSON resilience", () => {
   }, 15_000)
 
   it("replaces invalid raw JSON when a structured field is edited", async () => {
-    renderApp(<DNSServerDialog open title="编辑 DNS 服务器"
+    renderDNS(<DNSServerDialog open title="编辑 DNS 服务器"
       item={{ type: "https", tag: "dns", server: "dns.example" }} onOpenChange={vi.fn()} onSave={vi.fn()} />)
     await userEvent.click(screen.getByRole("tab", { name: "高级 JSON" }))
     await replaceJSON("编辑 DNS 服务器 JSON", "[")

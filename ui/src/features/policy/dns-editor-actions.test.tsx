@@ -2,13 +2,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useState } from "react"
 import { fireEvent, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { DNSServerCard } from "@/features/policy/dns-server-card"
 import { DNSRuleCard } from "@/features/policy/dns-rule-card"
 import { DNSVisualEditor } from "@/features/policy/dns-visual-editor"
 import type { JsonObject } from "@/features/policy/policy-form-model"
 import type { PolicyVisualEditorProps } from "@/features/policy/policy-page"
+import { installMockAPI } from "@/test/mock-api"
 import { renderApp } from "@/test/render"
 
 function EditorHarness({ initial }: { initial: JsonObject }) {
@@ -31,6 +32,8 @@ async function choose(label: string, option: string) {
 function renderEditor(ui: React.ReactElement) {
   return renderApp(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>)
 }
+
+beforeEach(() => { installMockAPI() })
 
 describe("DNS visual editor replacement workflows", () => {
   it("replaces existing servers and rules and closes a cancelled dialog", async () => {

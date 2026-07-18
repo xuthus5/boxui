@@ -1,43 +1,70 @@
-import { useId } from "react"
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Switch } from "@/components/ui/switch"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { useConfigQuery } from "@/features/config/config-hooks"
+import {
+  applyDNSFakeIPFieldChange,
+  applyDNSGlobalFieldChange,
+  dnsGlobalFields,
+  legacyFakeIPFields,
+  transformDNSField,
+} from "@/features/policy/dns-form-model"
 import { PolicyFormFields } from "@/features/policy/policy-form-fields"
-import { dnsGlobalFields, legacyFakeIPFields, transformDNSField } from "@/features/policy/dns-form-model"
-import { getPolicyPath, setPolicyPath } from "@/features/policy/policy-form-model"
+import { policyDNSServerTags } from "@/features/policy/policy-form-model"
 import type { PolicyVisualEditorProps } from "@/features/policy/policy-page"
 
 export function DNSGlobalCard(props: PolicyVisualEditorProps) {
   const { t } = useTranslation()
-  return <Card><CardHeader><CardTitle>{t("policy.dns.globalTitle")}</CardTitle>
-    <CardDescription>{t("policy.dns.globalDescription")}</CardDescription></CardHeader>
-    <CardContent><PolicyFormFields fields={dnsGlobalFields} object={props.object} namespace="policy.dns"
-      revision={props.revision} onChange={props.onChange} onFieldValidityChange={props.onFieldValidityChange}
-      transformField={transformDNSField} /></CardContent>
-    <CardFooter className="flex-wrap justify-between gap-2"><p className="text-muted-foreground">{t("policy.dns.globalFooter")}</p>{/* c8 ignore next */}<Button onClick={() => props.onGlobalSave?.(props.object)}>{t("policy.save")}</Button></CardFooter>
+  const config = useConfigQuery()
+  const context = useMemo(() => ({
+    dnsServerTags: policyDNSServerTags(config.data?.dns ?? props.object),
+  }), [config.data?.dns, props.object])
+  return <Card>
+    <CardHeader>
+      <CardTitle>{t("policy.dns.globalTitle")}</CardTitle>
+      <CardDescription>{t("policy.dns.globalDescription")}</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <PolicyFormFields
+        fields={dnsGlobalFields}
+        object={props.object}
+        namespace="policy.dns"
+        revision={props.revision}
+        context={context}
+        onChange={(next) => props.onChange(applyDNSGlobalFieldChange(props.object, next))}
+        onFieldValidityChange={props.onFieldValidityChange}
+        transformField={transformDNSField}
+      />
+    </CardContent>
+    <CardFooter className="flex-wrap justify-between gap-2">
+      <p className="text-muted-foreground">{t("policy.dns.globalFooter")}</p>
+      {/* c8 ignore next */}
+      <Button onClick={() => props.onGlobalSave?.(props.object)}>{t("policy.save")}</Button>
+    </CardFooter>
   </Card>
 }
 
 export function DNSFakeIPCard(props: PolicyVisualEditorProps) {
   const { t } = useTranslation()
-  const id = useId()
-  const enabled = getPolicyPath(props.object, "fakeip.enabled") === true
-  const updateEnabled = (checked: boolean) => props.onChange(setPolicyPath(
-    props.object,
-    "fakeip.enabled",
-    checked ? true : undefined,
-  ))
-  return <Card><CardHeader><CardTitle>{t("policy.dns.fakeIPTitle")}</CardTitle>
-    <CardDescription>{t("policy.dns.fakeIPDescription")}</CardDescription></CardHeader>
-    <CardContent><FieldGroup className="gap-4"><Field orientation="horizontal">
-      <FieldLabel htmlFor={id}>{t("policy.dns.fakeIPEnabled")}</FieldLabel>
-      <Switch id={id} aria-label={t("policy.dns.fakeIPEnabled")} checked={enabled} onCheckedChange={updateEnabled} />
-    </Field><PolicyFormFields fields={legacyFakeIPFields.slice(1)} object={props.object} namespace="policy.dns"
-      revision={props.revision} onChange={props.onChange} onFieldValidityChange={props.onFieldValidityChange} />
-    </FieldGroup></CardContent>
-    <CardFooter><p className="text-muted-foreground">{t("policy.dns.fakeIPFooter")}</p></CardFooter>
+  return <Card>
+    <CardHeader>
+      <CardTitle>{t("policy.dns.fakeIPTitle")}</CardTitle>
+      <CardDescription>{t("policy.dns.fakeIPDescription")}</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <PolicyFormFields
+        fields={legacyFakeIPFields}
+        object={props.object}
+        namespace="policy.dns"
+        revision={props.revision}
+        onChange={(next) => props.onChange(applyDNSFakeIPFieldChange(props.object, next))}
+        onFieldValidityChange={props.onFieldValidityChange}
+      />
+    </CardContent>
+    <CardFooter>
+      <p className="text-muted-foreground">{t("policy.dns.fakeIPFooter")}</p>
+    </CardFooter>
   </Card>
 }

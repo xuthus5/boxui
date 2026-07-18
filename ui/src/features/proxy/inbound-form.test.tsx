@@ -1,7 +1,8 @@
 import { useState } from "react"
-import { cleanup, fireEvent, screen } from "@testing-library/react"
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { InboundFormFields } from "@/features/proxy/inbound-form-fields"
 import {
@@ -9,6 +10,8 @@ import {
 } from "@/features/proxy/inbound-form-model"
 import { ProxyFormFields } from "@/features/proxy/proxy-form-fields"
 import { renderApp } from "@/test/render"
+
+afterEach(() => vi.unstubAllGlobals())
 
 describe("inbound form model", () => {
   it("reads, writes, and prunes nested values", () => {
@@ -71,6 +74,15 @@ function JSONFieldRevisionHarness() {
     <ProxyFormFields fields={[{ path: "transport.headers", label: "transportHeaders", kind: "json-object" }]} object={object} namespace="proxy.inbound" onChange={setObject} onFieldValidityChange={(_path, next) => setValid(next)} revision={revision} />
   </>
 }
+function ListenRevisionHarness() {
+  const [object, setObject] = useState<JsonObject>({ listen: "0.0.0.0" })
+  const [revision, setRevision] = useState(0)
+  return <>
+    <button onClick={() => { setObject({ listen: "::" }); setRevision((current) => current + 1) }}>Listen update</button>
+    <ProxyFormFields fields={[{ path: "listen", label: "listenAddress", kind: "listen-address" }]} object={object} namespace="proxy.inbound" onChange={setObject} revision={revision} />
+  </>
+}
+
 
 describe("inbound form field conversions", () => {
   it("updates lists, numeric lists, numbers, text, and booleans", async () => {
@@ -182,5 +194,63 @@ describe("inbound form field conversions", () => {
     await user.click(screen.getByRole("button", { name: "JSON update" }))
     expect(screen.getByLabelText("传输 Headers")).toHaveValue(JSON.stringify({ X: "old" }, null, 2))
     expect(screen.getByText("valid")).toBeInTheDocument()
+  })
+
+  it("resets listen address mode when the form revision changes", async () => {
+    const user = userEvent.setup()
+    renderApp(<ListenRevisionHarness />)
+    expect(screen.getByRole("combobox", { name: "监听地址" })).toHaveTextContent("0.0.0.0（IPv4 全接口）")
+    await user.click(screen.getByRole("button", { name: "Listen update" }))
+    expect(screen.getByRole("combobox", { name: "监听地址" })).toHaveTextContent("::（IPv6 全接口）")
+  })
+})
+
+
+describe("inbound bind interface field", () => {
+  it("loads network interfaces for bind interface selection and shows field help", async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.fn((input: string | URL | Request) => {
+      const path = typeof input === "string" ? input : input.toString()
+      if (path.includes("/api/network/interfaces")) {
+        return Promise.resolve(new Response(JSON.stringify({
+          status: "ok",
+          data: {
+            interfaces: [
+              { name: "wlp3s0", ips: ["192.168.1.48"] },
+              { name: "eno1", ips: [] },
+              { name: "tun0" },
+            ],
+          },
+          error: null,
+          meta: null,
+        }), { status: 200, headers: { "Content-Type": "application/json" } }))
+      }
+      return Promise.resolve(new Response(JSON.stringify({ status: "ok", data: {}, error: null, meta: null }), { status: 200 }))
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    const onChange = vi.fn()
+    renderApp(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><InboundFormFields fields={[{ path: "bind_interface", label: "bindInterface", kind: "network-interface" }, { path: "routing_mark", label: "routingMark" }]} object={{}} type="mixed" onChange={onChange} /></QueryClientProvider>)
+    expect((await screen.findAllByRole("button", { name: "字段说明" })).length).toBeGreaterThan(0)
+    await screen.findByRole("combobox", { name: "绑定接口" })
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    await user.click(screen.getByRole("combobox", { name: "绑定接口" }))
+    await user.click(await screen.findByRole("option", { name: "手动输入" }))
+    expect(screen.getByLabelText("自定义网卡名称")).toBeInTheDocument()
+    await user.click(screen.getByRole("combobox", { name: "绑定接口" }))
+    await user.click(await screen.findByRole("option", { name: "tun0" }))
+    expect(onChange).toHaveBeenLastCalledWith({ bind_interface: "tun0" })
+    await user.click(screen.getByRole("combobox", { name: "绑定接口" }))
+    await user.click(await screen.findByRole("option", { name: "wlp3s0 (192.168.1.48)" }))
+    expect(onChange).toHaveBeenLastCalledWith({ bind_interface: "wlp3s0" })
+    await user.click(screen.getByRole("combobox", { name: "绑定接口" }))
+    await user.click(await screen.findByRole("option", { name: "未设置" }))
+    expect(onChange).toHaveBeenLastCalledWith({})
+    await user.click(screen.getByRole("combobox", { name: "绑定接口" }))
+    await user.click(await screen.findByRole("option", { name: "eno1" }))
+    expect(onChange).toHaveBeenLastCalledWith({ bind_interface: "eno1" })
+    await user.click(screen.getByRole("combobox", { name: "绑定接口" }))
+    await user.click(await screen.findByRole("option", { name: "手动输入" }))
+    fireEvent.change(screen.getByLabelText("自定义网卡名称"), { target: { value: "eth0" } })
+    expect(onChange).toHaveBeenLastCalledWith({ bind_interface: "eth0" })
   })
 })

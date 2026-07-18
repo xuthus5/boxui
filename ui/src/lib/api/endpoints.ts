@@ -16,6 +16,7 @@ import type {
   URLTestOverrides,
   RouteRuleMetadata,
   VersionInfo,
+  NetworkInterfaceInfo,
 } from "@/lib/api/types"
 
 const json = (method: string, body?: unknown): RequestInit => ({
@@ -154,7 +155,7 @@ export const api = {
     ),
   },
   network: {
-    interfaces: () => apiRequest<JsonValue>("/api/network/interfaces"),
+    interfaces: () => apiRequest<{ interfaces: NetworkInterfaceInfo[] }>("/api/network/interfaces"),
   },
   runtime: {
     version: () => apiRequest<VersionInfo>("/api/runtime/version"),

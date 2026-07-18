@@ -285,60 +285,66 @@ func TestStatsHandlerHelpersAndSSE(t *testing.T) {
 }
 
 func TestNetworkHandlerGetInterfaces(t *testing.T) {
+	previousList := listInterfaces
+	previousAddrs := interfaceAddrs
+	t.Cleanup(func() {
+		listInterfaces = previousList
+		interfaceAddrs = previousAddrs
+	})
+
+	listInterfaces = func() ([]net.Interface, error) {
+		return []net.Interface{
+			{Index: 1, Name: "lo"},
+			{Index: 2, Name: "wlp3s0"},
+			{Index: 3, Name: "eno1"},
+		}, nil
+	}
+	interfaceAddrs = func(iface net.Interface) ([]net.Addr, error) {
+		switch iface.Name {
+		case "wlp3s0":
+			ip, ipNet, err := net.ParseCIDR("192.168.1.48/24")
+			if err != nil {
+				t.Fatal(err)
+			}
+			ipNet.IP = ip
+			return []net.Addr{ipNet}, nil
+		case "eno1":
+			return nil, nil
+		default:
+			_, loopback, err := net.ParseCIDR("127.0.0.1/8")
+			if err != nil {
+				t.Fatal(err)
+			}
+			return []net.Addr{loopback}, nil
+		}
+	}
+
 	handler := NewNetworkHandler()
 	rr := httptest.NewRecorder()
 	handler.GetInterfaces(rr, httptest.NewRequest(http.MethodGet, "/api/network/interfaces", nil))
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status = %d", rr.Code)
 	}
-	if !strings.Contains(rr.Body.String(), `"auto"`) || !strings.Contains(rr.Body.String(), `"0.0.0.0"`) {
-		t.Fatalf("body = %s", rr.Body.String())
+	body := rr.Body.String()
+	if !strings.Contains(body, `"name":"eno1"`) || !strings.Contains(body, `"name":"wlp3s0"`) || !strings.Contains(body, `"192.168.1.48"`) {
+		t.Fatalf("body = %s", body)
+	}
+	if strings.Contains(body, `"name":"lo"`) {
+		t.Fatalf("loopback should be omitted: %s", body)
 	}
 }
 
-func TestGetDefaultRouteIPsErrors(t *testing.T) {
-	previous := defaultRouteOutput
-	previousAddrs := interfaceAddrs
-	t.Cleanup(func() {
-		defaultRouteOutput = previous
-		interfaceAddrs = previousAddrs
-	})
-
-	defaultRouteOutput = func() ([]byte, error) {
-		return nil, errors.New("ip command failed")
+func TestNetworkHandlerGetInterfacesError(t *testing.T) {
+	previousList := listInterfaces
+	t.Cleanup(func() { listInterfaces = previousList })
+	listInterfaces = func() ([]net.Interface, error) {
+		return nil, errors.New("list failed")
 	}
-	if ips := getDefaultRouteIPs(); ips != nil {
-		t.Fatalf("ips = %#v, want nil", ips)
-	}
-
-	defaultRouteOutput = func() ([]byte, error) {
-		return []byte("default via 10.0.0.1\n"), nil
-	}
-	if ips := getDefaultRouteIPs(); ips != nil {
-		t.Fatalf("ips = %#v, want nil for malformed route", ips)
-	}
-
-	defaultRouteOutput = func() ([]byte, error) {
-		return []byte("default via 10.0.0.1 dev eth-test proto dhcp\n"), nil
-	}
-	interfaceAddrs = func(name string) ([]net.Addr, error) {
-		if name != "eth-test" {
-			t.Fatalf("interface name = %q", name)
-		}
-		ip, ipNet, err := net.ParseCIDR("192.0.2.10/24")
-		if err != nil {
-			t.Fatal(err)
-		}
-		ipNet.IP = ip
-		_, loopback, err := net.ParseCIDR("::1/128")
-		if err != nil {
-			t.Fatal(err)
-		}
-		return []net.Addr{ipNet, loopback}, nil
-	}
-	ips := getDefaultRouteIPs()
-	if len(ips) != 1 || ips[0] != "192.0.2.10" {
-		t.Fatalf("ips = %#v", ips)
+	handler := NewNetworkHandler()
+	rr := httptest.NewRecorder()
+	handler.GetInterfaces(rr, httptest.NewRequest(http.MethodGet, "/api/network/interfaces", nil))
+	if rr.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d body = %s", rr.Code, rr.Body.String())
 	}
 }
 

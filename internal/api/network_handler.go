@@ -3,7 +3,7 @@ package api
 import (
 	"net"
 	"net/http"
-	"os/exec"
+	"sort"
 	"strings"
 )
 
@@ -14,15 +14,9 @@ type InterfaceInfo struct {
 	IPs  []string `json:"ips"`
 }
 
-var defaultRouteOutput = func() ([]byte, error) {
-	return exec.Command("ip", "route", "show", "default").Output()
-}
+var listInterfaces = net.Interfaces
 
-var interfaceAddrs = func(name string) ([]net.Addr, error) {
-	iface, err := net.InterfaceByName(name)
-	if err != nil {
-		return nil, err
-	}
+var interfaceAddrs = func(iface net.Interface) ([]net.Addr, error) {
 	return iface.Addrs()
 }
 
@@ -31,41 +25,36 @@ func NewNetworkHandler() *NetworkHandler {
 }
 
 func (h *NetworkHandler) GetInterfaces(w http.ResponseWriter, r *http.Request) {
-	ips := getDefaultRouteIPs()
-	writeJSON(w, http.StatusOK, map[string]any{
-		"interfaces": []InterfaceInfo{
-			{
-				Name: "auto",
-				IPs:  append(ips, "0.0.0.0", "::"),
-			},
-		},
-	})
-}
+	ifaces, err := listInterfaces()
+	if err != nil {
+		writeJSONErrorCode(w, http.StatusInternalServerError, "internal", "failed to list network interfaces")
+		return
+	}
 
-func getDefaultRouteIPs() []string {
-	out, err := defaultRouteOutput()
-	if err != nil {
-		return nil
-	}
-	fields := strings.Fields(string(out))
-	if len(fields) < 5 {
-		return nil
-	}
-	ifaceName := fields[4]
-	addrs, err := interfaceAddrs(ifaceName)
-	if err != nil {
-		return nil
-	}
-	var ips []string
-	for _, addr := range addrs {
-		ipNet, ok := addr.(*net.IPNet)
-		if !ok {
+	result := make([]InterfaceInfo, 0, len(ifaces))
+	for _, iface := range ifaces {
+		name := strings.TrimSpace(iface.Name)
+		if name == "" || name == "lo" {
 			continue
 		}
-		ip := ipNet.IP.String()
-		if ip != "::1" {
-			ips = append(ips, ip)
+		addrs, err := interfaceAddrs(iface)
+		if err != nil {
+			continue
 		}
+		ips := make([]string, 0, len(addrs))
+		for _, addr := range addrs {
+			ipNet, ok := addr.(*net.IPNet)
+			if !ok || ipNet.IP == nil {
+				continue
+			}
+			ip := ipNet.IP
+			if ip.IsLoopback() {
+				continue
+			}
+			ips = append(ips, ip.String())
+		}
+		result = append(result, InterfaceInfo{Name: name, IPs: ips})
 	}
-	return ips
+	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
+	writeJSON(w, http.StatusOK, map[string]any{"interfaces": result})
 }

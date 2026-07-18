@@ -13,7 +13,7 @@ export const outboundMultiplexTypes = new Set(["shadowsocks", "vmess", "vless", 
 export const groupTypes = new Set(["selector", "urltest"])
 
 export const dialerFields: FieldSpec[] = [
-  { path: "detour", label: "detour" }, { path: "bind_interface", label: "bindInterface" },
+  { path: "detour", label: "detour" }, { path: "bind_interface", label: "bindInterface", kind: "network-interface" },
   { path: "inet4_bind_address", label: "inet4BindAddress" }, { path: "inet6_bind_address", label: "inet6BindAddress" },
   { path: "bind_address_no_port", label: "bindAddressNoPort", kind: "boolean" }, { path: "protect_path", label: "protectPath" },
   { path: "routing_mark", label: "routingMark" }, { path: "reuse_addr", label: "reuseAddress", kind: "boolean" },

@@ -22,14 +22,15 @@ describe("proxy and policy interactions", () => {
     fireEvent.change(screen.getByLabelText("Tag"), { target: { value: "new-in" } })
     await user.click(screen.getByRole("combobox", { name: "类型" }))
     await user.click(await screen.findByRole("option", { name: "mixed" }))
-    fireEvent.change(screen.getByLabelText("监听地址"), { target: { value: "::" } })
+    await user.click(screen.getByRole("combobox", { name: "监听地址" }))
+    await user.click(await screen.findByRole("option", { name: "::（IPv6 全接口）" }))
     fireEvent.change(screen.getByLabelText("监听端口"), { target: { value: "1081" } })
     await user.click(screen.getByRole("button", { name: "保存" }))
     await user.click(screen.getByRole("button", { name: "编辑" }))
     await user.click(screen.getByRole("button", { name: "取消" }))
     await user.click(screen.getByRole("button", { name: "删除" }))
     await user.click(screen.getByRole("button", { name: "确认删除" }))
-  })
+  }, 15000)
 
   it("installs defaults and saves route, DNS, and outbound configuration", async () => {
     const user = authenticate(); installMockAPI()

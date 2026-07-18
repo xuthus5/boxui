@@ -130,3 +130,8 @@ export interface APIEnvelope<T> {
   error: ApiErrorBody | null
   meta: JsonValue
 }
+
+export interface NetworkInterfaceInfo {
+  name: string
+  ips?: string[]
+}

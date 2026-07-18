@@ -1,7 +1,7 @@
 import type { JsonValue } from "@/lib/api/types"
 
 export type JsonObject = Record<string, JsonValue>
-export type FieldKind = "text" | "textarea" | "number" | "boolean" | "list" | "number-list" | "select" | "json-object" | "users" | "listen-address"
+export type FieldKind = "text" | "textarea" | "number" | "boolean" | "list" | "number-list" | "select" | "json-object" | "users" | "listen-address" | "network-interface"
 export interface FieldSpec { path: string; label: string; kind?: FieldKind; options?: string[] }
 export type FieldTransform = (object: JsonObject, field: FieldSpec, raw: string) => JsonObject | null | undefined
 

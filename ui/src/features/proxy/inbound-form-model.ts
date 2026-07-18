@@ -10,7 +10,7 @@ export const inboundTypes = [
 
 export const listenFields: FieldSpec[] = [
   { path: "listen", label: "listenAddress", kind: "listen-address" }, { path: "listen_port", label: "listenPort", kind: "number" },
-  { path: "bind_interface", label: "bindInterface" }, { path: "routing_mark", label: "routingMark" },
+  { path: "bind_interface", label: "bindInterface", kind: "network-interface" }, { path: "routing_mark", label: "routingMark" },
   { path: "reuse_addr", label: "reuseAddress", kind: "boolean" }, { path: "netns", label: "networkNamespace" },
   { path: "tcp_fast_open", label: "tcpFastOpen", kind: "boolean" }, { path: "tcp_multi_path", label: "tcpMultiPath", kind: "boolean" },
   { path: "disable_tcp_keep_alive", label: "disableTCPKeepAlive", kind: "boolean" }, { path: "tcp_keep_alive", label: "tcpKeepAlive" },

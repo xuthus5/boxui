@@ -1,13 +1,15 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
 
 import { i18n } from "@/i18n"
-import { preferencesStore, type Language, type Theme } from "@/lib/storage"
+import { preferencesStore, type Language, type LogThreshold, type Theme } from "@/lib/storage"
 
 interface PreferencesContextValue {
   theme: Theme
   language: Language
+  minimumLogLevel: LogThreshold
   setTheme: (theme: Theme) => void
   setLanguage: (language: Language) => void
+  setMinimumLogLevel: (level: LogThreshold) => void
 }
 
 const PreferencesContext = createContext<PreferencesContextValue | null>(null)
@@ -32,6 +34,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     ...preferences,
     setTheme: (theme) => setPreferences((current) => ({ ...current, theme })),
     setLanguage: (language) => setPreferences((current) => ({ ...current, language })),
+    setMinimumLogLevel: (minimumLogLevel) => setPreferences((current) => ({ ...current, minimumLogLevel })),
   }), [preferences])
 
   return <PreferencesContext value={value}>{children}</PreferencesContext>

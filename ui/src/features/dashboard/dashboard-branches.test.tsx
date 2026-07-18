@@ -6,6 +6,7 @@ import { ServiceCard } from "@/features/dashboard/service-card"
 import { TrafficChart } from "@/features/dashboard/traffic-chart"
 import { calculateTrafficRates } from "@/features/dashboard/traffic-rate"
 import { RecentLogs } from "@/features/dashboard/recent-logs"
+import { PreferencesProvider } from "@/features/preferences/preferences-provider"
 import { renderApp } from "@/test/render"
 
 describe("dashboard component states", () => {
@@ -66,10 +67,10 @@ describe("dashboard component states", () => {
   })
 
   it("renders empty and populated recent logs", () => {
-    const view = renderApp(<RecentLogs items={[]} />)
+    const view = renderApp(<PreferencesProvider><RecentLogs items={[]} /></PreferencesProvider>)
     expect(screen.getByText("暂无日志")).toBeInTheDocument()
     view.unmount()
-    renderApp(<RecentLogs items={[{ level: "error", message: "ready", timestamp: "2026-01-01T00:00:00Z" }]} />)
+    renderApp(<PreferencesProvider><RecentLogs items={[{ level: "error", message: "ready", timestamp: "2026-01-01T00:00:00Z" }]} /></PreferencesProvider>)
     expect(screen.getByText("ready")).toBeInTheDocument()
     expect(screen.getByRole("columnheader", { name: "时间" })).toBeInTheDocument()
     expect(document.querySelector("time")).toHaveAttribute("datetime", "2026-01-01T00:00:00Z")

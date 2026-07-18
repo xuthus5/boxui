@@ -137,7 +137,7 @@ function expectEnglishDNSCards() {
 }
 
 beforeEach(async () => {
-  preferencesStore.set({ language: "zh", theme: "system" })
+  preferencesStore.set({ language: "zh", theme: "system", minimumLogLevel: "all" })
   await i18n.changeLanguage("zh")
 })
 
@@ -168,7 +168,7 @@ describe("Chinese DNS policy interactions", () => {
 
 describe("English policy interactions", () => {
   it("resolves Route cards and validation without Chinese or raw keys", async () => {
-    preferencesStore.set({ language: "en", theme: "system" })
+    preferencesStore.set({ language: "en", theme: "system", minimumLogLevel: "all" })
     await i18n.changeLanguage("en")
     await renderPolicy("/policy/route", "Route")
     await expectPolicyTabs("Visual editor", "Advanced JSON")
@@ -179,7 +179,7 @@ describe("English policy interactions", () => {
   }, 20_000)
 
   it("resolves DNS cards and validation without Chinese or raw keys", async () => {
-    preferencesStore.set({ language: "en", theme: "system" })
+    preferencesStore.set({ language: "en", theme: "system", minimumLogLevel: "all" })
     await i18n.changeLanguage("en")
     await renderPolicy("/policy/dns", "DNS")
     await expectPolicyTabs("Visual editor", "Advanced JSON")

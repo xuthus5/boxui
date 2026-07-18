@@ -1,16 +1,28 @@
+import { isLogThreshold, type LogThreshold } from "@/features/observability/log-level"
+
 const PREFERENCES_KEY = "boxui.preferences.v1"
 
 export type Theme = "light" | "dark" | "system"
 export type Language = "zh" | "en"
-export interface Preferences { theme: Theme; language: Language }
+export type { LogThreshold }
+export interface Preferences {
+  theme: Theme
+  language: Language
+  minimumLogLevel: LogThreshold
+}
 
-const defaults: Preferences = { theme: "system", language: "zh" }
+const defaults: Preferences = { theme: "system", language: "zh", minimumLogLevel: "all" }
 
-function isPreferences(value: unknown): value is Preferences {
-  if (!value || typeof value !== "object") return false
+function normalizePreferences(value: unknown): Preferences | null {
+  if (!value || typeof value !== "object") return null
   const item = value as Partial<Preferences>
-  return ["light", "dark", "system"].includes(item.theme ?? "")
-    && ["zh", "en"].includes(item.language ?? "")
+  if (!["light", "dark", "system"].includes(item.theme ?? "")) return null
+  if (!["zh", "en"].includes(item.language ?? "")) return null
+  return {
+    theme: item.theme as Theme,
+    language: item.language as Language,
+    minimumLogLevel: isLogThreshold(item.minimumLogLevel) ? item.minimumLogLevel : defaults.minimumLogLevel,
+  }
 }
 
 export const preferencesStore = {
@@ -19,7 +31,7 @@ export const preferencesStore = {
       const raw = localStorage.getItem(PREFERENCES_KEY)
       if (!raw) return defaults
       const value: unknown = JSON.parse(raw)
-      return isPreferences(value) ? value : defaults
+      return normalizePreferences(value) ?? defaults
     } catch {
       return defaults
     }

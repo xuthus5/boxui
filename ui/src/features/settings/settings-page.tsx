@@ -16,7 +16,7 @@ import { useAuth } from "@/features/auth/auth-context"
 import { usePreferences } from "@/features/preferences/preferences-provider"
 import { URLTestDefaultsCard } from "@/features/settings/urltest-defaults-card"
 import { api } from "@/lib/api/endpoints"
-import type { Language, Theme } from "@/lib/storage"
+import type { Language, LogThreshold, Theme } from "@/lib/storage"
 
 function AppearanceCard() {
   const preferences = usePreferences()
@@ -24,6 +24,8 @@ function AppearanceCard() {
   return <Card><CardHeader><CardTitle>{t("settings.appearanceTitle")}</CardTitle><CardDescription>{t("settings.appearanceDescription")}</CardDescription></CardHeader><CardContent><FieldGroup>
     <Field orientation="horizontal"><FieldTitle id="theme-label">{t("settings.theme")}</FieldTitle><ToggleGroup aria-labelledby="theme-label" value={[preferences.theme]} onValueChange={(value) => { if (value[0]) preferences.setTheme(value[0] as Theme) }}><ToggleGroupItem value="light">{t("settings.light")}</ToggleGroupItem><ToggleGroupItem value="dark">{t("settings.dark")}</ToggleGroupItem><ToggleGroupItem value="system">{t("settings.system")}</ToggleGroupItem></ToggleGroup></Field>
     <Field orientation="horizontal"><FieldTitle id="language-label">{t("settings.language")}</FieldTitle><ToggleGroup aria-labelledby="language-label" value={[preferences.language]} onValueChange={(value) => { if (value[0]) preferences.setLanguage(value[0] as Language) }}><ToggleGroupItem value="zh">中文</ToggleGroupItem><ToggleGroupItem value="en">English</ToggleGroupItem></ToggleGroup></Field>
+    <Field orientation="horizontal"><FieldTitle id="minimum-log-level-label">{t("settings.minimumLogLevel")}</FieldTitle><ToggleGroup aria-labelledby="minimum-log-level-label" value={[preferences.minimumLogLevel]} onValueChange={(value) => { if (value[0]) preferences.setMinimumLogLevel(value[0] as LogThreshold) }}><ToggleGroupItem value="all">{t("observability.allLevels")}</ToggleGroupItem><ToggleGroupItem value="debug">Debug</ToggleGroupItem><ToggleGroupItem value="info">Info</ToggleGroupItem><ToggleGroupItem value="warn">Warn</ToggleGroupItem><ToggleGroupItem value="error">Error</ToggleGroupItem></ToggleGroup></Field>
+    <FieldDescription>{t("settings.minimumLogLevelDescription")}</FieldDescription>
   </FieldGroup></CardContent></Card>
 }
 

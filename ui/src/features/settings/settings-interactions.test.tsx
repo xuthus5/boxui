@@ -18,6 +18,7 @@ describe("settings interactions", () => {
     await screen.findByRole("heading", { name: "应用设置" })
     await user.click(screen.getByText("深色"))
     await user.click(screen.getByText("深色"))
+    await user.click(screen.getByText("Warn"))
     await user.clear(screen.getByLabelText("测速地址"))
     await user.type(screen.getByLabelText("测速地址"), "https://example.com/test")
     await user.click(screen.getByRole("button", { name: "保存测速地址" }))
@@ -26,6 +27,7 @@ describe("settings interactions", () => {
     await user.click(screen.getByText("English"))
     expect(screen.getByRole("heading", { name: "Application Settings" })).toBeInTheDocument()
     expect(localStorage.getItem("boxui.preferences.v1")).toContain("dark")
+    expect(localStorage.getItem("boxui.preferences.v1")).toContain("warn")
   })
 
   it("submits password and JWT rotations", async () => {

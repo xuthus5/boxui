@@ -47,9 +47,9 @@ describe("inbound form model", () => {
   })
 })
 
-function renderFields(fields: FieldSpec[], object: JsonObject, type = "mixed") {
+function renderFields(fields: FieldSpec[], object: JsonObject, type = "mixed", revision = 0) {
   const onChange = vi.fn()
-  renderApp(<InboundFormFields fields={fields} object={object} type={type} onChange={onChange} />)
+  renderApp(<InboundFormFields fields={fields} object={object} type={type} revision={revision} onChange={onChange} />)
   return onChange
 }
 
@@ -99,9 +99,30 @@ describe("inbound form field conversions", () => {
     expect(numberChange).toHaveBeenLastCalledWith({})
     cleanup()
 
-    const textChange = renderFields([{ path: "listen", label: "listenAddress" }], {})
-    fireEvent.change(screen.getByLabelText("监听地址"), { target: { value: "::" } })
-    expect(textChange).toHaveBeenLastCalledWith({ listen: "::" })
+    const listenChange = renderFields([{ path: "listen", label: "listenAddress", kind: "listen-address" }], {})
+    await user.click(screen.getByRole("combobox", { name: "监听地址" }))
+    await user.click(await screen.findByRole("option", { name: "0.0.0.0（IPv4 全接口）" }))
+    expect(listenChange).toHaveBeenLastCalledWith({ listen: "0.0.0.0" })
+    await user.click(screen.getByRole("combobox", { name: "监听地址" }))
+    await user.click(await screen.findByRole("option", { name: "::（IPv6 全接口）" }))
+    expect(listenChange).toHaveBeenLastCalledWith({ listen: "::" })
+    await user.click(screen.getByRole("combobox", { name: "监听地址" }))
+    await user.click(await screen.findByRole("option", { name: "手动输入" }))
+    fireEvent.change(screen.getByLabelText("自定义监听地址"), { target: { value: "127.0.0.1" } })
+    expect(listenChange).toHaveBeenLastCalledWith({ listen: "127.0.0.1" })
+    await user.click(screen.getByRole("combobox", { name: "监听地址" }))
+    await user.click(await screen.findByRole("option", { name: "未设置" }))
+    expect(listenChange).toHaveBeenLastCalledWith({})
+    cleanup()
+
+    renderFields([{ path: "listen", label: "listenAddress", kind: "listen-address" }], { listen: "10.0.0.1" })
+    expect(screen.getByLabelText("自定义监听地址")).toHaveValue("10.0.0.1")
+    cleanup()
+
+    const revisionView = renderApp(<InboundFormFields fields={[{ path: "listen", label: "listenAddress", kind: "listen-address" }]} object={{ listen: "0.0.0.0" }} type="mixed" revision={0} onChange={vi.fn()} />)
+    expect(screen.queryByLabelText("自定义监听地址")).not.toBeInTheDocument()
+    revisionView.rerender(<InboundFormFields fields={[{ path: "listen", label: "listenAddress", kind: "listen-address" }]} object={{ listen: "10.0.0.8" }} type="mixed" revision={1} onChange={vi.fn()} />)
+    expect(screen.getByLabelText("自定义监听地址")).toHaveValue("10.0.0.8")
     cleanup()
 
     const booleanChange = renderFields([{ path: "auto_route", label: "autoRoute", kind: "boolean" }], { auto_route: true })

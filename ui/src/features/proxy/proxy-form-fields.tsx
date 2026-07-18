@@ -44,6 +44,56 @@ function SelectField({ field, label, namespace, value, onChange }: { field: Fiel
   return <Field><FieldLabel htmlFor={id}>{label}</FieldLabel><Select items={items} value={value || unset} onValueChange={(next) => onChange(next === unset ? "" : String(next))}><SelectTrigger id={id} aria-label={label} className="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectGroup><SelectItem value={unset}>{t(`${namespace}.notSet`)}</SelectItem>{options.map((option) => <SelectItem key={option} value={option}>{optionLabel(option)}</SelectItem>)}</SelectGroup></SelectContent></Select></Field>
 }
 
+function ListenAddressField({ label, namespace, revision = 0, value, onChange }: { label: string; namespace: ProxyFormFieldsProps["namespace"]; revision?: number; value: string; onChange: (value: string) => void }) {
+  const { t } = useTranslation()
+  const selectId = useId()
+  const inputId = useId()
+  const isPreset = (candidate: string) => candidate === "0.0.0.0" || candidate === "::"
+  const deriveMode = (candidate: string) => isPreset(candidate) ? candidate : candidate ? "manual" : "unset"
+  const sourceKey = String(revision)
+  const [source, setSource] = useState(sourceKey)
+  const [mode, setMode] = useState(() => deriveMode(value))
+  if (source !== sourceKey) {
+    setSource(sourceKey)
+    setMode(deriveMode(value))
+  }
+  const items = useMemo(() => [
+    { value: "unset", label: t(`${namespace}.notSet`) },
+    { value: "0.0.0.0", label: t(`${namespace}.listenIPv4All`) },
+    { value: "::", label: t(`${namespace}.listenIPv6All`) },
+    { value: "manual", label: t(`${namespace}.listenManual`) },
+  ], [namespace, t])
+  return <Field className="sm:col-span-2">
+    <FieldLabel htmlFor={selectId}>{label}</FieldLabel>
+    <div className="grid gap-2">
+      <Select items={items} value={mode} onValueChange={(next) => {
+        const selected = String(next)
+        if (selected === "unset") {
+          setMode("unset")
+          onChange("")
+          return
+        }
+        if (selected === "manual") {
+          setMode("manual")
+          if (isPreset(value)) onChange("")
+          return
+        }
+        setMode(selected)
+        onChange(selected)
+      }}>
+        <SelectTrigger id={selectId} aria-label={label} className="w-full"><SelectValue /></SelectTrigger>
+        <SelectContent><SelectGroup>
+          <SelectItem value="unset">{t(`${namespace}.notSet`)}</SelectItem>
+          <SelectItem value="0.0.0.0">{t(`${namespace}.listenIPv4All`)}</SelectItem>
+          <SelectItem value="::">{t(`${namespace}.listenIPv6All`)}</SelectItem>
+          <SelectItem value="manual">{t(`${namespace}.listenManual`)}</SelectItem>
+        </SelectGroup></SelectContent>
+      </Select>
+      {mode === "manual" ? <Input id={inputId} aria-label={t(`${namespace}.listenManualInput`)} value={isPreset(value) ? "" : value} placeholder={t(`${namespace}.listenManualPlaceholder`)} onChange={(event) => onChange(event.target.value)} /> : null}
+    </div>
+  </Field>
+}
+
 function TextField({ field, label, value, onChange }: { field: FieldSpec; label: string; value: string; onChange: (value: string) => void }) {
   const id = useId()
   const area = field.kind === "textarea" || field.kind === "list" || field.kind === "number-list" || field.kind === "users"
@@ -96,6 +146,7 @@ function ProxyField({ field, object, namespace, revision, onChange, onFieldValid
   const update = (raw: string) => { const transformed = transformField?.(object, field, raw); const next = transformed === undefined ? defaultUpdate(object, field, raw) : transformed; if (next) onChange(next) }
   if (field.kind === "boolean") return <BooleanField label={label} checked={value === true} onChange={(checked) => onChange(setPath(object, field.path, checked || undefined))} />
   if (field.kind === "select") return <SelectField field={field} label={label} namespace={namespace} value={textValue(value)} onChange={update} />
+  if (field.kind === "listen-address") return <ListenAddressField label={label} namespace={namespace} revision={revision} value={textValue(value)} onChange={update} />
   if (field.kind === "users" || field.kind === "json-object") return <JSONField field={field} label={label} namespace={namespace} revision={revision} value={value} array={field.kind === "users"} onChange={(next) => onChange(setPath(object, field.path, next))} onFieldValidityChange={onFieldValidityChange} />
   return <TextField field={field} label={label} value={textValue(value)} onChange={update} />
 }

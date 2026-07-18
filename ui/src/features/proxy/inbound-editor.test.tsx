@@ -86,6 +86,22 @@ describe("inbound editor", () => {
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ transport: expect.objectContaining({ type: "httpupgrade", host: "upgrade.example.com" }) }))
   })
 
+
+  it("supports listen address presets and manual input", async () => {
+    const onSave = vi.fn()
+    const user = userEvent.setup()
+    renderApp(<InboundEditorDialog title="编辑" item={{ type: "mixed", listen: "::", listen_port: 1080 }} onClose={vi.fn()} onSave={onSave} />)
+
+    await user.click(screen.getByRole("combobox", { name: "监听地址" }))
+    await user.click(await screen.findByRole("option", { name: "0.0.0.0（IPv4 全接口）" }))
+    await user.click(screen.getByRole("combobox", { name: "监听地址" }))
+    await user.click(await screen.findByRole("option", { name: "手动输入" }))
+    fireEvent.change(screen.getByLabelText("自定义监听地址"), { target: { value: "192.168.1.10" } })
+    await user.click(screen.getByRole("button", { name: "保存" }))
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ type: "mixed", listen: "192.168.1.10", listen_port: 1080 }))
+  })
+
   it("requires an inbound type before saving", () => {
     renderApp(<InboundEditorDialog title="新增" item={{}} onClose={vi.fn()} onSave={vi.fn()} />)
     expect(screen.getByRole("button", { name: "保存" })).toBeDisabled()

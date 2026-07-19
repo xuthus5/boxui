@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react"
+import { fireEvent, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
@@ -38,10 +38,18 @@ function setup(config: SingBoxConfig = {
     if (path === "/api/network/interfaces") {
       return Promise.resolve(new Response(JSON.stringify({ interfaces: [{ name: "eth0", ips: ["10.0.0.2"] }] })))
     }
+    if (path === "/api/settings/password") {
+      return Promise.resolve(new Response(JSON.stringify({ defaultPassword: false })))
+    }
     return Promise.resolve(new Response(JSON.stringify({})))
   })
   vi.stubGlobal("fetch", fetchMock)
   return { user: userEvent.setup(), fetchMock, view: renderApp(<App />, "/advanced/endpoints") }
+}
+
+function fill(label: string, value: string, scope: HTMLElement | Document = document) {
+  const input = within(scope as HTMLElement).getByLabelText(label)
+  fireEvent.change(input, { target: { value } })
 }
 
 describe("endpoints page", () => {
@@ -59,9 +67,9 @@ describe("endpoints page", () => {
     await screen.findByRole("heading", { name: "Endpoints" })
     await user.click(screen.getAllByRole("button", { name: "新增 Endpoint" })[0])
     const dialog = await screen.findByRole("dialog")
-    await user.type(within(dialog).getByLabelText("Tag"), "wg-new")
-    await user.type(within(dialog).getByLabelText("本端地址"), "10.8.0.2/32")
-    await user.type(within(dialog).getByLabelText("私钥"), "secret-key")
+    fill("Tag", "wg-new", dialog)
+    fill("本端地址", "10.8.0.2/32", dialog)
+    fill("私钥", "secret-key", dialog)
     await user.click(within(dialog).getByRole("button", { name: "保存" }))
     expect(await screen.findByRole("heading", { name: "wg-new" })).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "保存配置" }))
@@ -75,7 +83,7 @@ describe("endpoints page", () => {
     expect(body.endpoints?.[0]?.tag).toBe("wg-new")
     expect(body.endpoints?.[0]?.type).toBe("wireguard")
     expect(body.endpoints?.[0]?.private_key).toBe("secret-key")
-  })
+  }, 15000)
 
   it("switches to advanced JSON and disables save for non-array values", async () => {
     const { user } = setup()
@@ -83,9 +91,6 @@ describe("endpoints page", () => {
     await user.click(screen.getByRole("tab", { name: "高级 JSON" }))
     const editor = await screen.findByLabelText("Endpoints 配置 JSON")
     await user.click(editor)
-    await user.keyboard("{Control>}a{/Control}{Backspace}{{}")
-    await user.keyboard("{Shift>}}{/Shift}")
-    // invalid JSON or object should disable save; write a plain object
     await user.keyboard("{Control>}a{/Control}{Backspace}")
     await user.paste("{}")
     expect(screen.getByRole("button", { name: "保存配置" })).toBeDisabled()

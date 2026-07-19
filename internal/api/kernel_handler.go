@@ -32,12 +32,13 @@ func (h *KernelHandler) Memory(w http.ResponseWriter, r *http.Request) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	writeJSON(w, http.StatusOK, map[string]any{
-		"alloc":       m.Alloc,
-		"total":       m.TotalAlloc,
-		"sys":         m.Sys,
-		"num_gc":      m.NumGC,
-		"heap_inuse":  m.HeapInuse,
-		"stack_inuse": m.StackInuse,
+		"alloc":         m.Alloc,
+		"total":         m.TotalAlloc,
+		"sys":           m.Sys,
+		"num_gc":        m.NumGC,
+		"heap_inuse":    m.HeapInuse,
+		"stack_inuse":   m.StackInuse,
+		"num_goroutine": runtime.NumGoroutine(),
 	})
 }
 

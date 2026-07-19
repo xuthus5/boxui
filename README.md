@@ -74,6 +74,27 @@ make dev
 - 后台修改密码后，环境变量不会在重启时覆盖新密码。
 - 使用默认密码时设置页面会持续显示警告；修改密码会使所有现有登录失效。
 
+
+## 发布与运维
+
+自托管发布请按 [docs/boxui/release-checklist.md](docs/boxui/release-checklist.md) 执行。
+
+常用命令：
+
+```bash
+# 真链路 API 冒烟：登录 → 改配置 → 校验状态/日志
+BOXUI_PASSWORD='your-password' ./scripts/e2e-live.sh
+
+# 运行时内存/goroutine 浸泡采样（默认 5 分钟 smoke）
+BOXUI_PASSWORD='your-password' ./scripts/soak-runtime.sh
+
+# 备份 / 恢复
+./bin/boxui --backup /var/backups/boxui/boxui.tar.gz
+./bin/boxui --restore /var/backups/boxui/boxui.tar.gz
+```
+
+生产环境建议启用 `BOXUI_TLS_CERT` / `BOXUI_TLS_KEY`，或通过反向代理终止 TLS。默认密码会被面板强制跳转到设置页完成轮换。
+
 ## Docker
 
 ```bash

@@ -31,7 +31,7 @@ func TestKernelHandlerMemoryShape(t *testing.T) {
 		t.Fatalf("status = %d %s", rr.Code, rr.Body.String())
 	}
 	resp := decodeBody[map[string]any](t, rr)
-	for _, k := range []string{"alloc", "total", "sys", "num_gc", "heap_inuse", "stack_inuse"} {
+	for _, k := range []string{"alloc", "total", "sys", "num_gc", "heap_inuse", "stack_inuse", "num_goroutine"} {
 		if _, ok := resp[k]; !ok {
 			t.Fatalf("missing field %q in memory response: %v", k, resp)
 		}

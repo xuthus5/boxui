@@ -24,6 +24,7 @@ import {
 import { footerItems, navigationGroups, primaryItems, type NavigationItem } from "@/app/navigation"
 import { useAuth } from "@/features/auth/auth-context"
 import { AppearanceMenu } from "@/features/preferences/appearance-menu"
+import { DefaultPasswordGate } from "@/features/settings/default-password-gate"
 
 function navigationContext(pathname: string) {
   const primary = primaryItems.find((item) => item.to === pathname)
@@ -111,7 +112,7 @@ export function AppShell() {
           </div>
           <AppearanceMenu />
         </header>
-        <main className="mx-auto flex min-w-0 w-full max-w-screen-2xl flex-1 flex-col gap-4 p-4 md:p-6"><Outlet /></main>
+        <main className="mx-auto flex min-w-0 w-full max-w-screen-2xl flex-1 flex-col gap-4 p-4 md:p-6"><DefaultPasswordGate><Outlet /></DefaultPasswordGate></main>
       </SidebarInset>
     </SidebarProvider>
   )

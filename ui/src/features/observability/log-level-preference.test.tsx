@@ -32,7 +32,7 @@ function installAPI() {
     if (path === "/api/service/status") return Promise.resolve(new Response(JSON.stringify({ running: true, uptime: "1m" })))
     if (path === "/api/stats/traffic/history") return Promise.resolve(new Response(JSON.stringify({ points: [] })))
     if (path === "/api/runtime/memory") {
-      return Promise.resolve(new Response(JSON.stringify({ alloc: 1, total: 1, sys: 1, num_gc: 0, heap_inuse: 1, stack_inuse: 1 })))
+      return Promise.resolve(new Response(JSON.stringify({ alloc: 1, total: 1, sys: 1, num_gc: 0, heap_inuse: 1, stack_inuse: 1, num_goroutine: 1 })))
     }
     if (path === "/api/runtime/version") {
       return Promise.resolve(new Response(JSON.stringify({ version: "dev", kernel_version: "1.0" })))

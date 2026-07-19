@@ -29,6 +29,7 @@ export interface MemoryStats {
   num_gc: number
   heap_inuse: number
   stack_inuse: number
+  num_goroutine?: number
 }
 
 export interface VersionInfo {

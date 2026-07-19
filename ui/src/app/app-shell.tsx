@@ -70,7 +70,23 @@ function AppSidebar() {
   }
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader><SidebarMenu><SidebarMenuItem><SidebarMenuButton size="lg" render={<NavLink to="/dashboard" aria-label="boxd" />} tooltip="boxd"><BoxIcon /><span className="flex min-w-0 flex-col items-start group-data-[collapsible=icon]:hidden"><span className="truncate font-semibold">boxd</span><span className="truncate text-xs text-sidebar-foreground/60">sing-box control plane</span></span></SidebarMenuButton></SidebarMenuItem></SidebarMenu></SidebarHeader>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size="lg"
+              render={<NavLink to="/dashboard" aria-label="boxd" />}
+              tooltip="boxd"
+            >
+              <BoxIcon />
+              <span className="flex min-w-0 flex-col items-start group-data-[collapsible=icon]:hidden">
+                <span className="truncate font-semibold">boxd</span>
+                <span className="truncate text-xs text-sidebar-foreground/60">sing-box control plane</span>
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup><SidebarGroupContent><NavItems items={primaryItems} /></SidebarGroupContent></SidebarGroup>
         {navigationGroups.map((group) => (

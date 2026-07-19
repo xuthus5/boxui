@@ -31,6 +31,9 @@ export default defineConfig({
         "src/main.tsx",
         "src/lib/api/types.ts",
         "src/**/*.d.ts",
+        // Dead modules not mounted in the SPA (kept for possible reuse).
+        "src/features/advanced/section-config-page.tsx",
+        "src/features/nodes/node-results-card.tsx",
       ],
     },
   },

@@ -16,3 +16,17 @@ describe("PreferencesProvider", () => {
     expect(document.documentElement).toHaveClass("dark")
   })
 })
+
+describe("PreferencesProvider language failures", () => {
+  it("logs when language switching fails", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined)
+    const { i18n } = await import("@/i18n")
+    const change = vi.spyOn(i18n, "changeLanguage").mockRejectedValueOnce(new Error("lang failed"))
+    const { PreferencesProvider } = await import("@/features/preferences/preferences-provider")
+    const { render } = await import("@testing-library/react")
+    render(<PreferencesProvider><div>child</div></PreferencesProvider>)
+    await vi.waitFor(() => expect(errorSpy).toHaveBeenCalled())
+    change.mockRestore()
+    errorSpy.mockRestore()
+  })
+})

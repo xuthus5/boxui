@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   changeEndpointType,
   createEndpointDraft,
+  isEndpointObject,
   isEndpointReady,
   isEndpointsStructureValid,
   normalizeEndpoints,
@@ -84,3 +85,10 @@ describe("endpoints form model", () => {
     ])
   })
 })
+
+  it("detects endpoint objects", () => {
+    expect(isEndpointObject({ type: "wireguard" })).toBe(true)
+    expect(isEndpointObject(undefined)).toBe(false)
+    expect(isEndpointObject([])).toBe(false)
+    expect(isEndpointObject("x")).toBe(false)
+  })

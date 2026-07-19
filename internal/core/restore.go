@@ -25,10 +25,6 @@ func RestoreBackup(archivePath, dataDir, configPath string) error {
 	}
 	database, found := entries[backupDatabaseName]
 	if !found {
-		// 兼容旧版备份归档中的 boxui.db 条目。
-		database, found = entries["boxui.db"]
-	}
-	if !found {
 		return fmt.Errorf("backup database is missing")
 	}
 	if err := validateDatabaseSnapshot(database); err != nil {

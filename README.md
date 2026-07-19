@@ -166,6 +166,27 @@ Or terminate TLS with Caddy / Nginx / Traefik, keep upstream on `127.0.0.1:9091`
 
 Release gates and rollback: [docs/boxd/release-checklist.md](docs/boxd/release-checklist.md), [docs/operations.md](docs/operations.md).
 
+## CI artifacts and Docker images
+
+| Trigger | Binary | Docker (GHCR) |
+| --- | --- | --- |
+| Pull request | quality checks only | build smoke (`push: false`) |
+| Push to `main` | rolling **nightly** GitHub Release + Actions artifact | `ghcr.io/<owner>/boxd:nightly`, `:nightly-<sha>` |
+| Tag `v*` | formal GitHub Release + SBOM | `ghcr.io/<owner>/boxd:<tag>`, `:<version>`, `:latest` |
+
+Examples (replace owner):
+
+```bash
+# Nightly image
+docker pull ghcr.io/xuthus5/boxd:nightly
+
+# Stable release image
+docker pull ghcr.io/xuthus5/boxd:latest
+docker pull ghcr.io/xuthus5/boxd:v0.1.0
+```
+
+Nightly binary archives are published under the rolling GitHub Release tag `nightly` and also uploaded as workflow artifacts (14-day retention). Formal builds are produced by pushing a `v*` tag.
+
 ## Local development
 
 ### Day-to-day

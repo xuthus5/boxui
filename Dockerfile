@@ -1,4 +1,4 @@
-# 前端构建
+# UI build
 FROM node:20-alpine AS ui-builder
 WORKDIR /app/ui
 COPY ui/package.json ui/package-lock.json* ./
@@ -6,20 +6,23 @@ RUN npm ci || npm install
 COPY ui/ ./
 RUN npm run build
 
-# 后端构建
+# Go build
 FROM golang:1.26-alpine AS go-builder
 WORKDIR /app
+ARG VERSION=dev
+ARG KERNEL_VERSION=1.13.14
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=ui-builder /app/ui/dist ./cmd/boxd/ui/dist
-RUN go build -tags "embed_ui with_gvisor with_quic with_dhcp with_wireguard with_utls with_acme with_clash_api" \
-    -ldflags "-X github.com/xuthus5/boxd/internal/core.Version=$(git describe --tags --always 2>/dev/null || echo dev) -X github.com/sagernet/sing-box/constant.Version=v1.13.14" \
+RUN CGO_ENABLED=0 go build \
+    -tags "embed_ui with_gvisor with_quic with_dhcp with_wireguard with_utls with_acme with_clash_api" \
+    -ldflags "-X github.com/xuthus5/boxd/internal/core.Version=${VERSION} -X github.com/sagernet/sing-box/constant.Version=v${KERNEL_VERSION}" \
     -o /bin/boxd ./cmd/boxd/
 
-# 运行
+# Runtime
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates iptables iproute2 && \
+RUN apk add --no-cache ca-certificates iptables iproute2 wget && \
     addgroup -S boxd && adduser -S -G boxd boxd && \
     mkdir -p /var/lib/boxd /etc/sing-box && \
     chmod 0700 /var/lib/boxd && \

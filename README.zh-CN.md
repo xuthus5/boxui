@@ -166,6 +166,27 @@ BOXD_TLS_KEY=/etc/boxd/tls/privkey.pem \
 
 更完整的发布门禁与回滚见 [docs/boxd/release-checklist.md](docs/boxd/release-checklist.md) 与 [docs/operations.md](docs/operations.md)。
 
+## CI 产物与 Docker 镜像
+
+| 触发条件 | 二进制 | Docker（GHCR） |
+| --- | --- | --- |
+| Pull Request | 仅质量门禁 | 构建冒烟（不推送） |
+| 推送到 `main` | 滚动 **nightly** GitHub Release + Actions 产物 | `ghcr.io/<owner>/boxd:nightly`、`:nightly-<sha>` |
+| 打 `v*` tag | 正式 GitHub Release + SBOM | `ghcr.io/<owner>/boxd:<tag>`、`:<version>`、`:latest` |
+
+示例（替换 owner）：
+
+```bash
+# Nightly 镜像
+docker pull ghcr.io/xuthus5/boxd:nightly
+
+# 正式版镜像
+docker pull ghcr.io/xuthus5/boxd:latest
+docker pull ghcr.io/xuthus5/boxd:v0.1.0
+```
+
+Nightly 二进制发布在滚动 GitHub Release 标签 `nightly` 下，同时作为 workflow artifact 上传（保留 14 天）。正式版通过推送 `v*` tag 产出。
+
 ## 本地开发
 
 ### 日常命令

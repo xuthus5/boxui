@@ -1,36 +1,38 @@
 # boxd
 
-sing-box 单节点控制平面（control plane）。提供 Web 面板管理内核配置、订阅节点、路由/DNS 策略与运行观测。
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-> 当前处于 PoC 阶段，接口与数据模型可能随开发调整。
+Single-node control plane for [sing-box](https://github.com/SagerNet/sing-box). Manage kernel config, subscriptions, route/DNS policy, and runtime observability from a web panel.
 
-## 功能
+> PoC stage — APIs and data models may change.
 
-- **仪表盘**：内核启停/重启、实时上下行流量、内存、最近日志
-- **代理配置**：入站 / 出站结构化表单编辑（含 TLS/Reality、传输等），保留高级 JSON
-- **流量策略**：路由规则与规则集、DNS 服务器与规则；规则名称/描述独立持久化
-- **节点与订阅**：订阅分组卡片、导入单节点、节点/分组 TCP·HTTP·ICMP 测速
-- **运行观测**：内核日志、应用日志、活跃连接
-- **高级配置**：Endpoints、Experimental、完整内核 JSON
-- **应用设置**：主题、中英文、账号密码与 JWT 轮换、测速地址、URLTest 全局默认、日志级别
+## Features
 
-## 技术栈
+- **Dashboard**: start/stop/restart kernel, live up/down traffic, memory, recent logs
+- **Proxy config**: structured inbound/outbound forms (TLS/Reality, transports), plus Advanced JSON
+- **Traffic policy**: route rules and rule-sets, DNS servers and rules; rule name/description stored by boxd
+- **Nodes & subscriptions**: subscription group cards, imported singles, per-node and batch TCP/HTTP/ICMP probes
+- **Observability**: kernel logs, application logs, active connections
+- **Advanced**: Endpoints, Experimental, full kernel JSON
+- **Settings**: theme, language, password/JWT rotation, probe URLs, global URLTest defaults, log level
 
-| 层 | 选型 |
+## Stack
+
+| Layer | Choice |
 | --- | --- |
-| 后端 | Go、chi、bbolt、sing-box（静态链接） |
-| 前端 | React 19、TypeScript、Vite、shadcn/ui、Tailwind CSS |
-| 认证 | JWT（HS256），密码 Argon2id |
+| Backend | Go, chi, bbolt, statically linked sing-box |
+| Frontend | React 19, TypeScript, Vite, shadcn/ui, Tailwind CSS |
+| Auth | JWT (HS256), Argon2id passwords |
 
-## 快速开始
+## Quick start
 
-### 要求
+### Requirements
 
 - Go 1.26+
 - Node.js 20+
-- Linux（生产推荐）；本地开发可用当前环境
+- Linux recommended for production
 
-### 一键构建并运行
+### Build and run
 
 ```bash
 make build
@@ -40,15 +42,15 @@ BOXD_PASSWORD='your-strong-password' \
   ./bin/boxd
 ```
 
-浏览器打开 `http://127.0.0.1:9091`，默认用户名 `admin`。首次使用默认密码时会强制进入设置页完成密码轮换。
+Open `http://127.0.0.1:9091`. Default username is `admin`. On the default password, the UI forces a password change.
 
-### 开发模式（前后端分离）
+### Dev mode (split frontend/backend)
 
 ```bash
-# 终端 1：前端 Vite（默认 http://127.0.0.1:5173）
+# Terminal 1: Vite UI (default http://127.0.0.1:5173)
 cd ui && npm ci && npm run dev
 
-# 终端 2：后端 API（默认 [::]:9091）
+# Terminal 2: API (default [::]:9091)
 export BOXD_PASSWORD='dev-password'
 export BOXD_DATA_DIR="$PWD/data"
 export BOXD_CONFIG="$PWD/data/config.json"
@@ -56,88 +58,88 @@ export BOXD_CORS_ALLOWED_ORIGINS='http://127.0.0.1:5173,http://localhost:5173'
 go run ./cmd/boxd/
 ```
 
-也可使用 `make dev`（会后台启动前端并运行后端，适合快速试跑）。
+`make dev` starts the UI in the background and runs the backend for a quick smoke run.
 
-## 使用说明
+## Usage
 
-1. 登录面板，轮换管理员密码。
-2. **订阅 / 节点**：添加订阅 URL 或导入单节点；按需配置 URLTest（可继承全局默认）。
-3. **入站 / 出站**：创建本地代理入站；出站可绑定订阅组 selector / urltest，或直连/阻断等。
-4. **路由 / DNS**：用表单维护规则；可一键安装常用默认规则与规则集。
-5. **仪表盘**：启动内核；观察流量与日志。
-6. **设置**：主题、语言、最低日志级别、系统测速地址、内核自启等。
+1. Sign in and rotate the admin password.
+2. **Subscriptions / nodes**: add a subscription URL or import a single node; configure URLTest (inherit global defaults when needed).
+3. **Inbounds / outbounds**: create local proxy inbounds; bind subscription groups as selector/urltest, or use direct/block.
+4. **Route / DNS**: edit rules in forms; install common default rules and rule-sets when useful.
+5. **Dashboard**: start the kernel; watch traffic and logs.
+6. **Settings**: theme, language, minimum log level, system probe URLs, kernel autostart.
 
-### 预置路由能力
+### Built-in routing helpers
 
-路由页可一键安装常见规则（嗅探、劫持 DNS、绕过局域网/ICMP、屏蔽 QUIC/广告、中国域名/IP 分流等）。规则集默认包含 Loyalsoldier 文本规则集（本地转换）与 SagerNet 二进制规则集（远程缓存）。
+The route page can install common rules (sniff, hijack DNS, bypass LAN/ICMP, block QUIC/ads, CN domain/IP split, etc.). Rule-sets include Loyalsoldier text sets (local convert) and SagerNet binary sets (remote cache).
 
-### 备份与恢复
+### Backup and restore
 
 ```bash
 ./bin/boxd --backup /var/backups/boxd/boxd-$(date +%F).tar.gz
-systemctl stop boxd.service   # 若以服务运行
+systemctl stop boxd.service   # if running as a service
 ./bin/boxd --restore /var/backups/boxd/boxd-YYYY-MM-DD.tar.gz \
   --data-dir /var/lib/boxd --config /etc/sing-box/config.json
 systemctl start boxd.service
 ```
 
-归档内数据库文件名为 `boxd.db`。
+The archive database entry is `boxd.db`.
 
-## 配置
+## Configuration
 
-| 环境变量 | Flag | 默认值 | 说明 |
+| Env | Flag | Default | Description |
 | --- | --- | --- | --- |
-| `BOXD_LISTEN` | `--listen` | `[::]:9091` | 监听地址（优先于 `BOXD_PORT`） |
-| `BOXD_PORT` | - | `9091` | 仅端口时使用 |
-| `BOXD_CONFIG` | `--config` | `/etc/sing-box/config.json` | 内核配置路径 |
-| `BOXD_DATA_DIR` | `--data-dir` | `/var/lib/boxd` | 数据目录（库、备份、规则集缓存等） |
-| `BOXD_USERNAME` | `--username` | `admin` | 登录用户名 |
-| `BOXD_PASSWORD` | `--password` | `admin123` | 仅首次初始化密码；库中已有哈希后不覆盖 |
-| `BOXD_LOG_LEVEL` | `--log-level` | `info` | 应用日志级别 |
-| `BOXD_REFRESH_INTERVAL` | `--refresh-interval` | `60` | 订阅刷新间隔（分钟） |
-| `BOXD_TLS_CERT` | `--tls-cert` | - | TLS 证书路径 |
-| `BOXD_TLS_KEY` | `--tls-key` | - | TLS 私钥路径 |
-| `BOXD_CORS_ALLOWED_ORIGINS` | - | - | CORS 允许源，逗号分隔 |
+| `BOXD_LISTEN` | `--listen` | `[::]:9091` | Listen address (wins over `BOXD_PORT`) |
+| `BOXD_PORT` | - | `9091` | Port-only form |
+| `BOXD_CONFIG` | `--config` | `/etc/sing-box/config.json` | Kernel config path |
+| `BOXD_DATA_DIR` | `--data-dir` | `/var/lib/boxd` | Data dir (DB, backups, rule-set cache) |
+| `BOXD_USERNAME` | `--username` | `admin` | Login username |
+| `BOXD_PASSWORD` | `--password` | `admin123` | First-run password only; ignored once a hash exists |
+| `BOXD_LOG_LEVEL` | `--log-level` | `info` | Application log level |
+| `BOXD_REFRESH_INTERVAL` | `--refresh-interval` | `60` | Subscription refresh interval (minutes) |
+| `BOXD_TLS_CERT` | `--tls-cert` | - | TLS certificate path |
+| `BOXD_TLS_KEY` | `--tls-key` | - | TLS private key path |
+| `BOXD_CORS_ALLOWED_ORIGINS` | - | - | Comma-separated CORS origins |
 
-### 认证说明
+### Auth notes
 
-- 密码：Argon2id 存入 bbolt；优先级为「库中哈希 → 首次 `BOXD_PASSWORD` → `admin123`」。
-- JWT：首次启动自动生成密钥写入数据库；设置页可轮换，轮换后全部会话失效。
-- 默认密码状态下面板会持续告警并引导修改。
+- Passwords: Argon2id in bbolt. Priority: stored hash → first-run `BOXD_PASSWORD` → `admin123`.
+- JWT: secret generated on first start and stored in the DB; rotation from Settings invalidates all sessions.
+- Default password keeps a persistent warning and forces rotation.
 
-## 部署
+## Deploy
 
-### systemd（推荐）
+### systemd (recommended)
 
 ```bash
-# 1. 构建
+# 1. Build
 make build
 
-# 2. 系统用户与目录
+# 2. System user and directories
 useradd --system --home /var/lib/boxd --shell /sbin/nologin boxd || true
 install -d -o boxd -g boxd -m 0700 /var/lib/boxd
 install -d -o root -g boxd -m 0750 /etc/boxd
 install -d -o boxd -g boxd -m 0750 /etc/sing-box
 
-# 3. 安装二进制与单元
+# 3. Install binary and unit
 install -o root -g boxd -m 0750 bin/boxd /usr/local/bin/boxd
 install -m 0644 deploy/boxd.service /etc/systemd/system/boxd.service
 install -o root -g boxd -m 0640 deploy/boxd.env.example /etc/boxd/boxd.env
-# 编辑 /etc/boxd/boxd.env，至少设置 BOXD_PASSWORD
+# Edit /etc/boxd/boxd.env and set at least BOXD_PASSWORD
 
-# 4. 启动
+# 4. Start
 systemctl daemon-reload
 systemctl enable --now boxd.service
 systemctl status boxd.service
 ```
 
-单元文件见 [`deploy/boxd.service`](deploy/boxd.service)，环境示例见 [`deploy/boxd.env.example`](deploy/boxd.env.example)。
+Unit: [`deploy/boxd.service`](deploy/boxd.service). Env sample: [`deploy/boxd.env.example`](deploy/boxd.env.example).
 
-权限约定：
+Permissions:
 
-- 二进制：`root:boxd` `0750`
-- 数据目录 `/var/lib/boxd`：`0700`
-- 配置文件：`0600` / `0640`（按实际共享需求）
+- Binary: `root:boxd` `0750`
+- Data dir `/var/lib/boxd`: `0700`
+- Config files: `0600` / `0640` as needed
 
 ### Docker
 
@@ -152,7 +154,7 @@ docker run --name boxd -p 9091:9091 \
 
 ### TLS
 
-内置 TLS：
+Built-in TLS:
 
 ```bash
 BOXD_TLS_CERT=/etc/boxd/tls/fullchain.pem \
@@ -160,34 +162,34 @@ BOXD_TLS_KEY=/etc/boxd/tls/privkey.pem \
 /usr/local/bin/boxd
 ```
 
-或由 Caddy / Nginx / Traefik 终止 TLS，上游仅监听 `127.0.0.1:9091`，并透传 WebSocket/SSE。
+Or terminate TLS with Caddy / Nginx / Traefik, keep upstream on `127.0.0.1:9091`, and pass through WebSocket/SSE.
 
-更完整的发布门禁与回滚见 [docs/boxd/release-checklist.md](docs/boxd/release-checklist.md) 与 [docs/operations.md](docs/operations.md)。
+Release gates and rollback: [docs/boxd/release-checklist.md](docs/boxd/release-checklist.md), [docs/operations.md](docs/operations.md).
 
-## 本地开发
+## Local development
 
-### 日常命令
+### Day-to-day
 
 ```bash
-make build              # 前端构建 + 嵌入 + 产出 bin/boxd
-make dev                # 简易联调
-make clean              # 清理 bin 与 dist
-make check-go           # Go 测试、race、覆盖率 ≥90%、lint、govulncheck
-make check-ui           # 前端 typecheck/lint/coverage/build
-make check-embedded-ui  # 嵌入资源完整性
+make build              # UI build + embed + bin/boxd
+make dev                # quick split run
+make clean              # remove bin and dist
+make check-go           # tests, race, coverage ≥90%, lint, govulncheck
+make check-ui           # typecheck / lint / coverage / build
+make check-embedded-ui  # embedded asset integrity
 ```
 
-前端目录：
+Frontend:
 
 ```bash
 cd ui
 npm ci
-npm run dev        # 开发服务器
-npm run check      # 类型 / lint / 覆盖率 / 构建
-npm run e2e:install && npm run e2e   # Playwright（Mock，不连生产 9091）
+npm run dev
+npm run check
+npm run e2e:install && npm run e2e   # Playwright mocks; does not hit production :9091
 ```
 
-后端：
+Backend:
 
 ```bash
 go run ./cmd/boxd/
@@ -197,24 +199,24 @@ goimports-reviser -rm-unused -set-alias -project-name github.com/xuthus5/boxd -r
 goimports-reviser -rm-unused -set-alias -project-name github.com/xuthus5/boxd -recursive ./cmd
 ```
 
-### 发布包
+### Release package
 
 ```bash
 ./scripts/package-release.sh v0.1.0 release
-# 产出 release/boxd_v0.1.0_linux_amd64.tar.gz 及 sha256
+# produces release/boxd_v0.1.0_linux_amd64.tar.gz and sha256
 ```
 
-推送 `v*` tag 后，GitHub Release workflow 会跑完整质量门禁并上传归档、SBOM。
+Pushing a `v*` tag runs the GitHub Release workflow (full gates, archive, SBOM).
 
-### 运行时抽检
+### Live smoke
 
 ```bash
 BOXD_PASSWORD='your-password' ./scripts/e2e-live.sh
 BOXD_PASSWORD='your-password' ./scripts/soak-runtime.sh
 ```
 
-## 许可证
+## License
 
-boxd **自有代码**采用 [Apache License 2.0](LICENSE)。
+boxd **first-party code** is under [Apache License 2.0](LICENSE).
 
-正式发布的二进制**静态链接**了 GPL-3.0 的 sing-box / sing，分发二进制时还需同时遵守 [第三方声明](THIRD_PARTY_NOTICES.md) 中的 GPL-3.0 义务（含对应源码与构建信息）。本说明不构成法律意见。
+Release binaries **statically link** GPL-3.0 sing-box / sing. Distributing those binaries also requires the GPL-3.0 obligations described in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (corresponding source and build information). This is not legal advice.

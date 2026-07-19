@@ -1,5 +1,4 @@
 /bin/
-/boxui
 node_modules/
 /ui/dist/
 /ui/coverage/
@@ -10,5 +9,3 @@ cmd/boxd/ui/
 *.db
 *.log
 __debug_bin*
-/boxui_new
-/boxui

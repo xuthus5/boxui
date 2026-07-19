@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 19, TypeScript 6, Vite, shadcn/Base UI, Tailwind CSS v4, TanStack Query, Vitest, Testing Library, Playwright.
 
-**Source Spec:** `docs/boxui/specs/2026-07-15-policy-form-editor-design.md`
+**Source Spec:** `docs/boxd/specs/2026-07-15-policy-form-editor-design.md`
 
 ## Global Constraints
 

@@ -77,7 +77,7 @@ make dev
 
 ## 发布与运维
 
-自托管发布请按 [docs/boxui/release-checklist.md](docs/boxui/release-checklist.md) 执行。
+自托管发布请按 [docs/boxd/release-checklist.md](docs/boxd/release-checklist.md) 执行。
 
 常用命令：
 

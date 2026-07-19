@@ -288,7 +288,7 @@ Expected: PASS.
 
 **Files:**
 - Modify: `README.md`
-- Modify: `docs/boxui/plans/2026-07-15-urltest-inheritance.md`
+- Modify: `docs/boxd/plans/2026-07-15-urltest-inheritance.md`
 
 - [x] **Step 1: Update concise user documentation**
 

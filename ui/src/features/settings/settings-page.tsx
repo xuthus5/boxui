@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Field, FieldDescription, FieldGroup, FieldLabel, FieldTitle } from "@/components/ui/field"
+import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldTitle } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
@@ -24,12 +24,61 @@ import type { Language, LogThreshold, Theme } from "@/lib/storage"
 function AppearanceCard() {
   const preferences = usePreferences()
   const { t } = useTranslation()
-  return <Card><CardHeader><CardTitle>{t("settings.appearanceTitle")}</CardTitle><CardDescription>{t("settings.appearanceDescription")}</CardDescription></CardHeader><CardContent><FieldGroup>
-    <Field orientation="horizontal"><FieldTitle id="theme-label">{t("settings.theme")}</FieldTitle><ToggleGroup aria-labelledby="theme-label" value={[preferences.theme]} onValueChange={(value) => { if (value[0]) preferences.setTheme(value[0] as Theme) }}><ToggleGroupItem value="light">{t("settings.light")}</ToggleGroupItem><ToggleGroupItem value="dark">{t("settings.dark")}</ToggleGroupItem><ToggleGroupItem value="system">{t("settings.system")}</ToggleGroupItem></ToggleGroup></Field>
-    <Field orientation="horizontal"><FieldTitle id="language-label">{t("settings.language")}</FieldTitle><ToggleGroup aria-labelledby="language-label" value={[preferences.language]} onValueChange={(value) => { if (value[0]) preferences.setLanguage(value[0] as Language) }}><ToggleGroupItem value="zh">中文</ToggleGroupItem><ToggleGroupItem value="en">English</ToggleGroupItem></ToggleGroup></Field>
-    <Field orientation="horizontal"><FieldTitle id="minimum-log-level-label">{t("settings.minimumLogLevel")}</FieldTitle><ToggleGroup aria-labelledby="minimum-log-level-label" value={[preferences.minimumLogLevel]} onValueChange={(value) => { if (value[0]) preferences.setMinimumLogLevel(value[0] as LogThreshold) }}><ToggleGroupItem value="all">{t("observability.allLevels")}</ToggleGroupItem><ToggleGroupItem value="debug">Debug</ToggleGroupItem><ToggleGroupItem value="info">Info</ToggleGroupItem><ToggleGroupItem value="warn">Warn</ToggleGroupItem><ToggleGroupItem value="error">Error</ToggleGroupItem></ToggleGroup></Field>
-    <FieldDescription>{t("settings.minimumLogLevelDescription")}</FieldDescription>
-  </FieldGroup></CardContent></Card>
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("settings.appearanceTitle")}</CardTitle>
+        <CardDescription>{t("settings.appearanceDescription")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <FieldGroup className="gap-4">
+          <Field orientation="responsive" className="gap-2 sm:justify-between">
+            <FieldTitle id="theme-label" className="shrink-0">{t("settings.theme")}</FieldTitle>
+            <ToggleGroup
+              aria-labelledby="theme-label"
+              className="w-full max-w-full flex-wrap justify-start sm:w-auto sm:justify-end"
+              value={[preferences.theme]}
+              onValueChange={(value) => { if (value[0]) preferences.setTheme(value[0] as Theme) }}
+            >
+              <ToggleGroupItem value="light">{t("settings.light")}</ToggleGroupItem>
+              <ToggleGroupItem value="dark">{t("settings.dark")}</ToggleGroupItem>
+              <ToggleGroupItem value="system">{t("settings.system")}</ToggleGroupItem>
+            </ToggleGroup>
+          </Field>
+          <Field orientation="responsive" className="gap-2 sm:justify-between">
+            <FieldTitle id="language-label" className="shrink-0">{t("settings.language")}</FieldTitle>
+            <ToggleGroup
+              aria-labelledby="language-label"
+              className="w-full max-w-full flex-wrap justify-start sm:w-auto sm:justify-end"
+              value={[preferences.language]}
+              onValueChange={(value) => { if (value[0]) preferences.setLanguage(value[0] as Language) }}
+            >
+              <ToggleGroupItem value="zh">中文</ToggleGroupItem>
+              <ToggleGroupItem value="en">English</ToggleGroupItem>
+            </ToggleGroup>
+          </Field>
+          <Field orientation="responsive" className="gap-2 sm:justify-between">
+            <FieldContent className="min-w-0 gap-1">
+              <FieldTitle id="minimum-log-level-label" className="shrink-0">{t("settings.minimumLogLevel")}</FieldTitle>
+              <FieldDescription>{t("settings.minimumLogLevelDescription")}</FieldDescription>
+            </FieldContent>
+            <ToggleGroup
+              aria-labelledby="minimum-log-level-label"
+              className="w-full max-w-full flex-wrap justify-start sm:w-auto sm:max-w-[22rem] sm:justify-end"
+              value={[preferences.minimumLogLevel]}
+              onValueChange={(value) => { if (value[0]) preferences.setMinimumLogLevel(value[0] as LogThreshold) }}
+            >
+              <ToggleGroupItem value="all">{t("observability.allLevels")}</ToggleGroupItem>
+              <ToggleGroupItem value="debug">Debug</ToggleGroupItem>
+              <ToggleGroupItem value="info">Info</ToggleGroupItem>
+              <ToggleGroupItem value="warn">Warn</ToggleGroupItem>
+              <ToggleGroupItem value="error">Error</ToggleGroupItem>
+            </ToggleGroup>
+          </Field>
+        </FieldGroup>
+      </CardContent>
+    </Card>
+  )
 }
 
 function AccountCard({ defaultPassword, jwt }: { defaultPassword: boolean; jwt: { masked: string; present: boolean; length: number } }) {

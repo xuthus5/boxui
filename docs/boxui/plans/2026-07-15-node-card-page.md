@@ -15,7 +15,7 @@
 - Mobile is one column, tablet two columns, and wide screens three columns where space permits.
 - Keep functions at most 50 lines, files at most 300 lines, nesting at most 3, parameters at most 3, and complexity at most 10.
 - Maintain all four frontend coverage metrics at or above 90%.
-- Create one final Git commit, then build and deploy to `/usr/local/bin/boxui` and restart `boxui.service`.
+- Create one final Git commit, then build and deploy to `/usr/local/bin/boxd` and restart `boxd.service`.
 
 ---
 
@@ -126,4 +126,4 @@ expect(overflow).toBe(0)
 - [ ] Run the repository hard-limit ESLint command for file length, function length, depth, parameters, and complexity.
 - [ ] Run `git diff --check`, confirm no backend or global-style files changed, and remove generated `coverage`, `dist`, Playwright reports, and embedded UI copies.
 - [ ] Commit only task files with `feat(nodes): redesign node cards`.
-- [ ] Run `make build`, install the binary as `root:boxui` mode `0750`, restart `boxui.service`, and verify active state, process hash, version, HTTP 200, and current invocation logs.
+- [ ] Run `make build`, install the binary as `root:boxd` mode `0750`, restart `boxd.service`, and verify active state, process hash, version, HTTP 200, and current invocation logs.

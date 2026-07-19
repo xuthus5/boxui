@@ -8,8 +8,8 @@ import (
 	"sync"
 )
 
-// AppLogHandler 将 BoxUI 自身的结构化日志同时输出到 io.Writer 和 LogWriter，
-// 使管理面板日志页面能同时展示 sing-box 内核日志与 BoxUI 自身日志。
+// AppLogHandler 将 boxd 自身的结构化日志同时输出到 io.Writer 和 LogWriter，
+// 使管理面板日志页面能同时展示 sing-box 内核日志与 boxd 自身日志。
 type AppLogHandler struct {
 	mu     sync.Mutex
 	w      io.Writer

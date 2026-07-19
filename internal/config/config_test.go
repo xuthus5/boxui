@@ -19,12 +19,12 @@ func TestParseDefaults(t *testing.T) {
 }
 
 func TestParseFromEnv(t *testing.T) {
-	t.Setenv("BOXUI_LISTEN", "0.0.0.0:8080")
-	t.Setenv("BOXUI_USERNAME", "testuser")
-	t.Setenv("BOXUI_PASSWORD", "testpass")
-	t.Setenv("BOXUI_DATA_DIR", "/tmp/boxui-test")
-	t.Setenv("BOXUI_REFRESH_INTERVAL", "30")
-	t.Setenv("BOXUI_CORS_ALLOWED_ORIGINS", "https://a.example, https://b.example ")
+	t.Setenv("BOXD_LISTEN", "0.0.0.0:8080")
+	t.Setenv("BOXD_USERNAME", "testuser")
+	t.Setenv("BOXD_PASSWORD", "testpass")
+	t.Setenv("BOXD_DATA_DIR", "/tmp/boxd-test")
+	t.Setenv("BOXD_REFRESH_INTERVAL", "30")
+	t.Setenv("BOXD_CORS_ALLOWED_ORIGINS", "https://a.example, https://b.example ")
 
 	cfg := Parse()
 	if cfg.Listen != "0.0.0.0:8080" {
@@ -36,8 +36,8 @@ func TestParseFromEnv(t *testing.T) {
 	if cfg.Password != "testpass" {
 		t.Errorf("expected testpass, got %s", cfg.Password)
 	}
-	if cfg.DataDir != "/tmp/boxui-test" {
-		t.Errorf("expected /tmp/boxui-test, got %s", cfg.DataDir)
+	if cfg.DataDir != "/tmp/boxd-test" {
+		t.Errorf("expected /tmp/boxd-test, got %s", cfg.DataDir)
 	}
 	if cfg.RefreshInterval != 30 {
 		t.Errorf("expected 30, got %d", cfg.RefreshInterval)
@@ -84,7 +84,7 @@ func TestGetEnvList(t *testing.T) {
 }
 
 func TestParseWithPortEnv(t *testing.T) {
-	t.Setenv("BOXUI_PORT", "7777")
+	t.Setenv("BOXD_PORT", "7777")
 	cfg := Parse()
 	if cfg.Listen != "[::]:7777" {
 		t.Errorf("expected [::]:7777, got %s", cfg.Listen)
@@ -92,8 +92,8 @@ func TestParseWithPortEnv(t *testing.T) {
 }
 
 func TestParseListenOverridesPort(t *testing.T) {
-	t.Setenv("BOXUI_LISTEN", "0.0.0.0:8888")
-	t.Setenv("BOXUI_PORT", "7777")
+	t.Setenv("BOXD_LISTEN", "0.0.0.0:8888")
+	t.Setenv("BOXD_PORT", "7777")
 	cfg := Parse()
 	if cfg.Listen != "0.0.0.0:8888" {
 		t.Errorf("expected 0.0.0.0:8888 (listen overrides port), got %s", cfg.Listen)
@@ -101,18 +101,18 @@ func TestParseListenOverridesPort(t *testing.T) {
 }
 
 func TestResolveListen(t *testing.T) {
-	t.Setenv("BOXUI_LISTEN", "")
-	t.Setenv("BOXUI_PORT", "")
+	t.Setenv("BOXD_LISTEN", "")
+	t.Setenv("BOXD_PORT", "")
 	if v := resolveListen(); v != "[::]:9091" {
 		t.Errorf("expected [::]:9091, got %s", v)
 	}
 
-	t.Setenv("BOXUI_PORT", "12345")
+	t.Setenv("BOXD_PORT", "12345")
 	if v := resolveListen(); v != "[::]:12345" {
 		t.Errorf("expected [::]:12345, got %s", v)
 	}
 
-	t.Setenv("BOXUI_LISTEN", "127.0.0.1:80")
+	t.Setenv("BOXD_LISTEN", "127.0.0.1:80")
 	if v := resolveListen(); v != "127.0.0.1:80" {
 		t.Errorf("expected 127.0.0.1:80, got %s", v)
 	}

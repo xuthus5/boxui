@@ -12,7 +12,7 @@ describe("PreferencesProvider", () => {
       matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn(),
     }))
     renderApp(<App />, "/login")
-    expect(screen.getByRole("heading", { name: "BoxUI" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "boxd" })).toBeInTheDocument()
     expect(document.documentElement).toHaveClass("dark")
   })
 })

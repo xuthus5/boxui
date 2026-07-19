@@ -21,7 +21,7 @@ func TestRuleSetHandlerStatusAndAutoUpdate(t *testing.T) {
 	if err := os.WriteFile(configPath, []byte(`{"route":{"rule_set":[{"tag":"geo","type":"remote","url":"https://example.com/a.srs"}]}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	db, err := bbolt.Open(filepath.Join(dir, "boxui.db"), 0600, nil)
+	db, err := bbolt.Open(filepath.Join(dir, "boxd.db"), 0600, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

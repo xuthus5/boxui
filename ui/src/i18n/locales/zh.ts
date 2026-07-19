@@ -50,7 +50,7 @@ export const zh = {
     settings: {
       title: "应用设置", appearanceMenu: "外观", appearanceTitle: "外观与语言", appearanceDescription: "偏好仅保存在当前浏览器。",
       theme: "主题", light: "浅色", dark: "深色", system: "跟随系统", language: "语言", minimumLogLevel: "默认最低日志级别", minimumLogLevelDescription: "仪表盘最近日志与日志页默认仅展示该级别及以上内容。",
-      accountTitle: "登录与安全", accountDescription: "登录用户名由 BOXUI_USERNAME 或启动参数管理，前端不可轮换。",
+      accountTitle: "登录与安全", accountDescription: "登录用户名由 BOXD_USERNAME 或启动参数管理，前端不可轮换。",
       defaultPasswordTitle: "默认密码仍在使用", defaultPasswordDescription: "请立即轮换管理员密码。", defaultPasswordForced: "请先轮换默认管理员密码后，才能使用其他面板功能。",
       currentPassword: "当前密码", newPassword: "新密码", passwordHint: "至少 8 个字符。", rotatePassword: "轮换密码",
       jwtSecret: "JWT 签名密钥", rotateJWT: "轮换 JWT 密钥", rotateJWTTitle: "轮换 JWT 密钥？",

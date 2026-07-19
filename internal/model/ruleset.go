@@ -3,7 +3,7 @@ package model
 import "time"
 
 // RuleSetAutoUpdate 控制本地内置规则集的定时更新。
-// 默认关闭；开启后仅更新 BoxUI 管理的 local 内置源。
+// 默认关闭；开启后仅更新 boxd 管理的 local 内置源。
 type RuleSetAutoUpdate struct {
 	Enabled  bool   `json:"enabled"`
 	Interval string `json:"interval"`

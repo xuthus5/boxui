@@ -238,7 +238,7 @@ func (h *StatsHandler) LogsSSE(w http.ResponseWriter, r *http.Request) {
 	h.streamLogs(w, r, h.kernelLogWriter)
 }
 
-// AppLogsSSE 输出 BoxUI 自身应用日志流。
+// AppLogsSSE 输出 boxd 自身应用日志流。
 func (h *StatsHandler) AppLogsSSE(w http.ResponseWriter, r *http.Request) {
 	h.streamLogs(w, r, h.appLogWriter)
 }

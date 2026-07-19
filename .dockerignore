@@ -2,7 +2,7 @@
 .github
 bin/
 ui/dist/
-cmd/boxui/ui/
+cmd/boxd/ui/
 docs/
 *.md
 !README.md

@@ -6,9 +6,9 @@ import { PagePlaceholder } from "@/app/page-placeholder"
 import { renderApp } from "@/test/render"
 
 describe("App", () => {
-  it("renders the BoxUI login entry", () => {
+  it("renders the boxd login entry", () => {
     renderApp(<App />)
-    expect(screen.getByRole("heading", { name: /boxui/i })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: /boxd/i })).toBeInTheDocument()
   })
 
   it("renders translated placeholders", () => {

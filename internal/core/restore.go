@@ -25,6 +25,10 @@ func RestoreBackup(archivePath, dataDir, configPath string) error {
 	}
 	database, found := entries[backupDatabaseName]
 	if !found {
+		// 兼容旧版备份归档中的 boxui.db 条目。
+		database, found = entries["boxui.db"]
+	}
+	if !found {
 		return fmt.Errorf("backup database is missing")
 	}
 	if err := validateDatabaseSnapshot(database); err != nil {
@@ -33,7 +37,7 @@ func RestoreBackup(archivePath, dataDir, configPath string) error {
 	if err := os.MkdirAll(dataDir, 0700); err != nil {
 		return fmt.Errorf("create data directory: %w", err)
 	}
-	databasePath := filepath.Join(dataDir, "boxui.db")
+	databasePath := filepath.Join(dataDir, "boxd.db")
 	previousDatabase, databaseExisted, err := readOptionalFile(databasePath)
 	if err != nil {
 		return fmt.Errorf("read existing database: %w", err)
@@ -117,12 +121,12 @@ func readValidatedTar(reader *tar.Reader) (map[string][]byte, error) {
 }
 
 func validateDatabaseSnapshot(data []byte) error {
-	dir, err := os.MkdirTemp("", "boxui-restore-*")
+	dir, err := os.MkdirTemp("", "boxd-restore-*")
 	if err != nil {
 		return fmt.Errorf("create restore validation directory: %w", err)
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
-	path := filepath.Join(dir, "boxui.db")
+	path := filepath.Join(dir, "boxd.db")
 	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("write database validation snapshot: %w", err)
 	}

@@ -132,4 +132,4 @@ Dialog
 - [ ] Run `cd ui && npm run e2e`; expect all Playwright tests to pass.
 - [ ] Run `git diff --check`, then commit only task files with `feat(outbounds): expand editor fields`.
 - [ ] Run `make build && make check-embedded-ui`.
-- [ ] Install `bin/boxui` as `/usr/local/bin/boxui` with owner `root:boxui` and mode `0750`, restart `boxui.service`, and verify active state, executable path, matching hash, startup logs, and HTTP 200.
+- [ ] Install `bin/boxd` as `/usr/local/bin/boxd` with owner `root:boxd` and mode `0750`, restart `boxd.service`, and verify active state, executable path, matching hash, startup logs, and HTTP 200.

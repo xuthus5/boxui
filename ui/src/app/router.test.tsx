@@ -12,7 +12,7 @@ afterEach(() => { sessionStore.clear(); vi.unstubAllGlobals() })
 describe("application routing", () => {
   it("redirects unauthenticated users to login", () => {
     renderApp(<App />, "/dashboard")
-    expect(screen.getByRole("heading", { name: "BoxUI" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "boxd" })).toBeInTheDocument()
   })
 
   it("renders the dashboard and approved navigation for a valid session", async () => {
@@ -34,7 +34,7 @@ describe("application routing", () => {
     renderApp(<App />, "/dashboard")
     await screen.findByText("运行中")
     await user.click(screen.getByRole("button", { name: "退出登录" }))
-    expect(await screen.findByRole("heading", { name: "BoxUI" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "boxd" })).toBeInTheDocument()
   })
 
   it("handles logout request failures after clearing the local session", async () => {
@@ -49,7 +49,7 @@ describe("application routing", () => {
     renderApp(<App />, "/advanced/endpoints")
     await screen.findByRole("heading", { name: "Endpoints" })
     await user.click(screen.getByRole("button", { name: "退出登录" }))
-    expect(await screen.findByRole("heading", { name: "BoxUI" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "boxd" })).toBeInTheDocument()
     expect(await screen.findByText("logout failed")).toBeInTheDocument()
   })
 })

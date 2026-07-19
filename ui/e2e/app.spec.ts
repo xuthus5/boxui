@@ -199,7 +199,7 @@ test("mobile node and subscription cards stay within the viewport", async ({ pag
 test("subscription URLTest policy fits a 320px viewport", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 })
   await page.addInitScript(() => {
-    localStorage.setItem("boxui.preferences.v1", JSON.stringify({ theme: "system", language: "en" }))
+    localStorage.setItem("boxd.preferences.v1", JSON.stringify({ theme: "system", language: "en" }))
   })
   await page.route("http://127.0.0.1:4173/api/**", fulfillAPI)
   await login(page)
@@ -217,7 +217,7 @@ test("subscription URLTest policy fits a 320px viewport", async ({ page }) => {
 test("route and DNS policy editors fit 320px and remain keyboard reachable", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 })
   await page.addInitScript(() => {
-    localStorage.setItem("boxui.preferences.v1", JSON.stringify({ theme: "system", language: "en" }))
+    localStorage.setItem("boxd.preferences.v1", JSON.stringify({ theme: "system", language: "en" }))
   })
   await page.route("http://127.0.0.1:4173/api/**", fulfillAPI)
   await login(page)

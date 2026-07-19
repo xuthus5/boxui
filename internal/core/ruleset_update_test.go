@@ -16,7 +16,7 @@ import (
 )
 
 func TestRuleSetAutoUpdateSettings(t *testing.T) {
-	db, err := bbolt.Open(filepath.Join(t.TempDir(), "boxui.db"), 0600, nil)
+	db, err := bbolt.Open(filepath.Join(t.TempDir(), "boxd.db"), 0600, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

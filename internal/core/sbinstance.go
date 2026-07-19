@@ -58,7 +58,7 @@ type boxRouter interface {
 	AppendTracker(tracker adapter.ConnectionTracker)
 }
 
-// boxOutboundManager 暴露 box 的出站管理器接口，boxui 通过它查询分组与切换。
+// boxOutboundManager 暴露 box 的出站管理器接口，boxd 通过它查询分组与切换。
 type boxOutboundManager interface {
 	Outbound(tag string) (adapter.Outbound, bool)
 	Outbounds() []adapter.Outbound

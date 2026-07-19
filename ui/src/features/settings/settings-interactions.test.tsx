@@ -32,8 +32,8 @@ describe("settings interactions", () => {
     await user.click(screen.getByText("English"))
     await user.click(screen.getByText("English"))
     expect(screen.getByRole("heading", { name: "Application Settings" })).toBeInTheDocument()
-    expect(localStorage.getItem("boxui.preferences.v1")).toContain("dark")
-    expect(localStorage.getItem("boxui.preferences.v1")).toContain("warn")
+    expect(localStorage.getItem("boxd.preferences.v1")).toContain("dark")
+    expect(localStorage.getItem("boxd.preferences.v1")).toContain("warn")
   })
 
   it("selects a preset speed test URL without manual input", async () => {

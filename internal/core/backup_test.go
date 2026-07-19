@@ -21,7 +21,7 @@ func TestCreateBackupIncludesSnapshotConfigAndManifest(t *testing.T) {
 	if err := os.WriteFile(configPath, []byte(`{"log":{"level":"info"}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	backupPath := filepath.Join(t.TempDir(), "boxui-backup.tar.gz")
+	backupPath := filepath.Join(t.TempDir(), "boxd-backup.tar.gz")
 
 	if err := CreateBackup(db, configPath, backupPath, "test-version"); err != nil {
 		t.Fatalf("CreateBackup() error = %v", err)

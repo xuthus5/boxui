@@ -58,7 +58,7 @@ describe("experimental form model", () => {
     const prepared = prepareExperimentalObject({
       cache_file: {
         enabled: true,
-        path: "/var/lib/boxui/cache.db",
+        path: "/var/lib/boxd/cache.db",
         store_rdrc: true,
         rdrc_timeout: "1h",
       },
@@ -69,7 +69,7 @@ describe("experimental form model", () => {
         },
       },
     })
-    expect(getPolicyPath(prepared, "cache_file.path")).toBe("/var/lib/boxui/cache.db")
+    expect(getPolicyPath(prepared, "cache_file.path")).toBe("/var/lib/boxd/cache.db")
     expect(getPolicyPath(prepared, "cache_file.rdrc_timeout")).toBe("1h")
     expect(getPolicyPath(prepared, "v2ray_api.stats.outbounds")).toEqual(["direct"])
     expect(experimentalFields.some((field) => field.path === "clash_api.external_controller")).toBe(true)

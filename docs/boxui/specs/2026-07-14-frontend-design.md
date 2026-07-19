@@ -1,10 +1,10 @@
-# BoxUI 前端设计
+# boxd 前端设计
 
 日期：2026-07-14
 
 ## 目标
 
-为现有 BoxUI Go 后端新增 React 19、TypeScript 与 Vite 前端，完整对接现有 API，不修改后端代码。界面严格遵循 shadcn/ui 的组件组合、语义色和布局规范，不增加额外的全局视觉样式。
+为现有 boxd Go 后端新增 React 19、TypeScript 与 Vite 前端，完整对接现有 API，不修改后端代码。界面严格遵循 shadcn/ui 的组件组合、语义色和布局规范，不增加额外的全局视觉样式。
 
 ## 范围与约束
 

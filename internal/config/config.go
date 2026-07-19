@@ -26,22 +26,22 @@ type Config struct {
 func Parse() *Config {
 	cfg := &Config{}
 
-	fs := flag.NewFlagSet("boxui", flag.ContinueOnError)
+	fs := flag.NewFlagSet("boxd", flag.ContinueOnError)
 	fs.StringVar(&cfg.Listen, "listen", resolveListen(), "listen address")
-	fs.StringVar(&cfg.ConfigPath, "config", getEnv("BOXUI_CONFIG", "/etc/sing-box/config.json"), "sing-box config path")
-	fs.StringVar(&cfg.DataDir, "data-dir", getEnv("BOXUI_DATA_DIR", "/var/lib/boxui"), "data directory")
-	fs.StringVar(&cfg.Username, "username", getEnv("BOXUI_USERNAME", "admin"), "login username")
-	fs.StringVar(&cfg.Password, "password", getEnv("BOXUI_PASSWORD", ""), "login password")
-	fs.IntVar(&cfg.RefreshInterval, "refresh-interval", getEnvInt("BOXUI_REFRESH_INTERVAL", 60), "subscription refresh interval (minutes)")
-	fs.StringVar(&cfg.TLSCert, "tls-cert", getEnv("BOXUI_TLS_CERT", ""), "TLS certificate file path")
-	fs.StringVar(&cfg.TLSKey, "tls-key", getEnv("BOXUI_TLS_KEY", ""), "TLS private key file path")
-	fs.StringVar(&cfg.LogLevel, "log-level", getEnv("BOXUI_LOG_LEVEL", "info"), "log level (debug|info|warn|error)")
+	fs.StringVar(&cfg.ConfigPath, "config", getEnv("BOXD_CONFIG", "/etc/sing-box/config.json"), "sing-box config path")
+	fs.StringVar(&cfg.DataDir, "data-dir", getEnv("BOXD_DATA_DIR", "/var/lib/boxd"), "data directory")
+	fs.StringVar(&cfg.Username, "username", getEnv("BOXD_USERNAME", "admin"), "login username")
+	fs.StringVar(&cfg.Password, "password", getEnv("BOXD_PASSWORD", ""), "login password")
+	fs.IntVar(&cfg.RefreshInterval, "refresh-interval", getEnvInt("BOXD_REFRESH_INTERVAL", 60), "subscription refresh interval (minutes)")
+	fs.StringVar(&cfg.TLSCert, "tls-cert", getEnv("BOXD_TLS_CERT", ""), "TLS certificate file path")
+	fs.StringVar(&cfg.TLSKey, "tls-key", getEnv("BOXD_TLS_KEY", ""), "TLS private key file path")
+	fs.StringVar(&cfg.LogLevel, "log-level", getEnv("BOXD_LOG_LEVEL", "info"), "log level (debug|info|warn|error)")
 	fs.StringVar(&cfg.BackupPath, "backup", "", "create a backup archive and exit")
 	fs.StringVar(&cfg.RestorePath, "restore", "", "restore a backup archive and exit")
 	fs.BoolVar(&cfg.ShowVersion, "version", false, "print version and exit")
 	_ = fs.Parse(os.Args[1:])
 
-	cfg.CORSAllowedOrigins = parseCORSOrigins(os.Getenv("BOXUI_CORS_ALLOWED_ORIGINS"))
+	cfg.CORSAllowedOrigins = parseCORSOrigins(os.Getenv("BOXD_CORS_ALLOWED_ORIGINS"))
 
 	return cfg
 }
@@ -82,12 +82,12 @@ func getEnvList(key string) []string {
 }
 
 // resolveListen 解析最终监听地址。
-// 优先级：--listen / BOXUI_LISTEN（完整地址）> BOXUI_PORT（仅端口号）> 默认 [::]:9091
+// 优先级：--listen / BOXD_LISTEN（完整地址）> BOXD_PORT（仅端口号）> 默认 [::]:9091
 func resolveListen() string {
-	if addr := getEnv("BOXUI_LISTEN", ""); addr != "" {
+	if addr := getEnv("BOXD_LISTEN", ""); addr != "" {
 		return addr
 	}
-	if port := getEnv("BOXUI_PORT", ""); port != "" {
+	if port := getEnv("BOXD_PORT", ""); port != "" {
 		return "[::]:" + port
 	}
 	return "[::]:9091"

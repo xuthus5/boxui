@@ -18,7 +18,7 @@ import (
 
 const (
 	backupFormatVersion = 1
-	backupDatabaseName  = "boxui.db"
+	backupDatabaseName  = "boxd.db"
 	backupConfigName    = "sing-box.json"
 	backupManifestName  = "manifest.json"
 )

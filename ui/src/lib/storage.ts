@@ -1,6 +1,6 @@
 import { isLogThreshold, type LogThreshold } from "@/features/observability/log-level"
 
-const PREFERENCES_KEY = "boxui.preferences.v1"
+const PREFERENCES_KEY = "boxd.preferences.v1"
 
 export type Theme = "light" | "dark" | "system"
 export type Language = "zh" | "en"

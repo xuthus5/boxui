@@ -42,7 +42,7 @@ jobs:
       - name: Generate SPDX SBOM
         uses: anchore/sbom-action@v0
         with:
-          path: bin/boxui
+          path: bin/boxd
           format: spdx-json
           output-file: release/boxui_${{ github.ref_name }}_linux_amd64.spdx.json
           artifact-name: boxui-${{ github.ref_name }}-sbom

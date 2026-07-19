@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# BoxUI runtime soak sampler.
+# boxd runtime soak sampler.
 # Samples /api/runtime/memory under light API load and checks growth gates.
 set -euo pipefail
 
@@ -8,9 +8,9 @@ usage() {
 Usage: soak-runtime.sh [options]
 
 Options:
-  --base-url URL          BoxUI base URL (default: http://127.0.0.1:9091)
-  --username NAME         Login username (default: $BOXUI_USERNAME or admin)
-  --password PASS         Login password (default: $BOXUI_PASSWORD)
+  --base-url URL          boxd base URL (default: http://127.0.0.1:9091)
+  --username NAME         Login username (default: $BOXD_USERNAME or admin)
+  --password PASS         Login password (default: $BOXD_PASSWORD)
   --duration SEC          Total sample window seconds (default: 300)
   --interval SEC          Sample interval seconds (default: 10)
   --load-every N          Issue light load every N samples (default: 1)
@@ -31,9 +31,9 @@ Recommended longer soak before GA:
 USAGE
 }
 
-base_url="${BOXUI_BASE_URL:-http://127.0.0.1:9091}"
-username="${BOXUI_USERNAME:-admin}"
-password="${BOXUI_PASSWORD:-}"
+base_url="${BOXD_BASE_URL:-http://127.0.0.1:9091}"
+username="${BOXD_USERNAME:-admin}"
+password="${BOXD_PASSWORD:-}"
 duration=300
 interval=10
 load_every=1
@@ -60,7 +60,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$password" ]]; then
-  echo "password is required via --password or BOXUI_PASSWORD" >&2
+  echo "password is required via --password or BOXD_PASSWORD" >&2
   exit 2
 fi
 

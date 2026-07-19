@@ -19,12 +19,12 @@ describe("sessionStore", () => {
   })
 
   it("ignores malformed storage", () => {
-    sessionStorage.setItem("boxui.session.v1", "not-json")
+    sessionStorage.setItem("boxd.session.v1", "not-json")
     expect(sessionStore.get()).toBeNull()
   })
 
   it("ignores values with the wrong shape", () => {
-    sessionStorage.setItem("boxui.session.v1", JSON.stringify({ token: 1, expiresAt: null }))
+    sessionStorage.setItem("boxd.session.v1", JSON.stringify({ token: 1, expiresAt: null }))
     expect(sessionStore.get()).toBeNull()
     expect(sessionStore.isValid()).toBe(false)
   })

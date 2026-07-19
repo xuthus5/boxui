@@ -1,8 +1,8 @@
-# BoxUI Frontend Implementation Plan
+# boxd Frontend Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a production-ready React 19 and TypeScript administration panel that covers every approved BoxUI capability through the existing Go API without backend changes.
+**Goal:** Build a production-ready React 19 and TypeScript administration panel that covers every approved boxd capability through the existing Go API without backend changes.
 
 **Architecture:** A Vite SPA uses React Router for protected lazy routes, TanStack Query for HTTP state, a typed API client for direct and enveloped responses, and authenticated Fetch Streams for SSE. Business modules own focused pages, hooks, schemas, and tests while shared UI is composed exclusively from shadcn/ui components.
 
@@ -82,7 +82,7 @@ import { App } from "@/app"
 describe("App", () => {
   it("renders the login route without an authenticated session", () => {
     renderApp(<App />, "/")
-    expect(screen.getByRole("heading", { name: /boxui/i })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: /boxd/i })).toBeInTheDocument()
   })
 })
 ```
@@ -142,7 +142,7 @@ Use `fetch(path, {headers: {Authorization: `Bearer ${token}`}, signal})`, a `Tex
 
 - [ ] **Step 6: Implement and test versioned storage**
 
-Store sessions under `boxui.session.v1` in `sessionStorage`; store theme and language under `boxui.preferences.v1` in `localStorage`. Catch unavailable or malformed storage and fall back to defaults without throwing.
+Store sessions under `boxd.session.v1` in `sessionStorage`; store theme and language under `boxd.preferences.v1` in `localStorage`. Catch unavailable or malformed storage and fall back to defaults without throwing.
 
 - [ ] **Step 7: Run foundation tests**
 

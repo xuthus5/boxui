@@ -2,7 +2,7 @@
 set -euo pipefail
 
 root_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-embed_dir="$root_dir/cmd/boxui/ui"
+embed_dir="$root_dir/cmd/boxd/ui"
 
 cleanup() {
   rm -rf "$embed_dir"
@@ -18,4 +18,4 @@ find "$embed_dir" -type d -exec chmod 0700 {} +
 find "$embed_dir" -type f -exec chmod 0600 {} +
 
 cd "$root_dir"
-go test -tags embed_ui ./cmd/boxui -run TestEmbeddedUIAssetIntegrity -count=1
+go test -tags embed_ui ./cmd/boxd -run TestEmbeddedUIAssetIntegrity -count=1

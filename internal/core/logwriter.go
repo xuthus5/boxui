@@ -99,7 +99,7 @@ func levelToString(level log.Level) string {
 	}
 }
 
-// WriteAppEntry 写入 BoxUI 自身的结构化日志条目，与 sing-box 内核日志共用同一缓冲区。
+// WriteAppEntry 写入 boxd 自身的结构化日志条目，与 sing-box 内核日志共用同一缓冲区。
 func (w *LogWriter) WriteAppEntry(level, message string) {
 	entry := LogEntry{
 		Level:   level,

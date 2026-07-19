@@ -256,7 +256,7 @@ func TestOpenDatabaseCreatesPrivateDataFiles(t *testing.T) {
 		t.Fatalf("dir mode = %o, want 0700", dirInfo.Mode().Perm())
 	}
 
-	dbInfo, err := os.Stat(filepath.Join(dataDir, "boxui.db"))
+	dbInfo, err := os.Stat(filepath.Join(dataDir, "boxd.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -408,4 +408,27 @@ func (s *fakeServer) ListenAndServeTLS(certFile, keyFile string) error {
 func (s *fakeServer) Shutdown(ctx context.Context) error {
 	s.shutdownCalled = true
 	return s.shutdownErr
+}
+
+func TestOpenDatabaseMigratesLegacyName(t *testing.T) {
+	dataDir := t.TempDir()
+	legacy := filepath.Join(dataDir, "boxui.db")
+	db, err := bbolt.Open(legacy, 0600, nil)
+	if err != nil {
+		t.Fatalf("create legacy db: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("close legacy db: %v", err)
+	}
+	migrated, err := openDatabase(dataDir)
+	if err != nil {
+		t.Fatalf("openDatabase: %v", err)
+	}
+	defer func() { _ = migrated.Close() }()
+	if _, err := os.Stat(filepath.Join(dataDir, "boxd.db")); err != nil {
+		t.Fatalf("expected boxd.db after migration: %v", err)
+	}
+	if _, err := os.Stat(legacy); !os.IsNotExist(err) {
+		t.Fatalf("legacy boxui.db should be renamed away, err=%v", err)
+	}
 }

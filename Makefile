@@ -14,30 +14,30 @@ check-embedded-ui:
 	@./scripts/check-embedded-ui.sh
 
 dev:
-	@echo "Starting boxui..."
+	@echo "Starting boxd..."
 	@cd ui && npm run dev &
 	@sleep 2
-	@go run ./cmd/boxui/
+	@go run ./cmd/boxd/
 
 build:
 	@echo "Building frontend..."
 	@cd ui && npm run build
 	@find ui/dist -type d -exec chmod 0700 {} +
 	@find ui/dist -type f -exec chmod 0600 {} +
-	@echo "Copying frontend dist to cmd/boxui/ui/dist/ for Go embed..."
-	@install -d -m 0700 cmd/boxui/ui
-	@rm -rf cmd/boxui/ui/dist
-	@cp -r ui/dist cmd/boxui/ui/dist
-	@find cmd/boxui/ui -type d -exec chmod 0700 {} +
-	@find cmd/boxui/ui -type f -exec chmod 0600 {} +
+	@echo "Copying frontend dist to cmd/boxd/ui/dist/ for Go embed..."
+	@install -d -m 0700 cmd/boxd/ui
+	@rm -rf cmd/boxd/ui/dist
+	@cp -r ui/dist cmd/boxd/ui/dist
+	@find cmd/boxd/ui -type d -exec chmod 0700 {} +
+	@find cmd/boxd/ui -type f -exec chmod 0600 {} +
 	@echo "Building binary..."
 	@install -d -m 0700 bin
-	@go build -tags "$(BUILD_TAGS)" -ldflags "-X github.com/xuthus5/boxd/internal/core.Version=$(VERSION) -X github.com/sagernet/sing-box/constant.Version=$(KERNEL_VERSION)" -o bin/boxui ./cmd/boxui/
-	@chmod 0700 bin/boxui
+	@go build -tags "$(BUILD_TAGS)" -ldflags "-X github.com/xuthus5/boxd/internal/core.Version=$(VERSION) -X github.com/sagernet/sing-box/constant.Version=$(KERNEL_VERSION)" -o bin/boxd ./cmd/boxd/
+	@chmod 0700 bin/boxd
 	@echo "Cleaning up embed copy..."
-	@rm -rf cmd/boxui/ui
-	@echo "Built bin/boxui"
+	@rm -rf cmd/boxd/ui
+	@echo "Built bin/boxd"
 
 clean:
-	@rm -rf bin/ ui/dist/ cmd/boxui/ui/
+	@rm -rf bin/ ui/dist/ cmd/boxd/ui/
 	@echo "Cleaned"

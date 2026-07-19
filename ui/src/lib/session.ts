@@ -1,4 +1,4 @@
-const SESSION_KEY = "boxui.session.v1"
+const SESSION_KEY = "boxd.session.v1"
 
 export interface Session {
   token: string

@@ -17,17 +17,17 @@ describe("preferencesStore", () => {
   })
 
   it("fills missing minimum log level for older preferences", () => {
-    localStorage.setItem("boxui.preferences.v1", JSON.stringify({ language: "en", theme: "light" }))
+    localStorage.setItem("boxd.preferences.v1", JSON.stringify({ language: "en", theme: "light" }))
     expect(preferencesStore.get()).toEqual({ language: "en", theme: "light", minimumLogLevel: "all" })
   })
 
   it("ignores malformed preferences", () => {
-    localStorage.setItem("boxui.preferences.v1", "{}")
+    localStorage.setItem("boxd.preferences.v1", "{}")
     expect(preferencesStore.get()).toEqual(defaults)
   })
 
   it("ignores unsupported preference values", () => {
-    localStorage.setItem("boxui.preferences.v1", JSON.stringify({ language: "fr", theme: "blue", minimumLogLevel: "fatal" }))
+    localStorage.setItem("boxd.preferences.v1", JSON.stringify({ language: "fr", theme: "blue", minimumLogLevel: "fatal" }))
     expect(preferencesStore.get()).toEqual(defaults)
   })
 })

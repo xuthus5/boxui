@@ -240,9 +240,9 @@ func TestConfigHandlerInstallDefaultRuleSets(t *testing.T) {
 
 	handler := NewConfigHandler(configPath, nil, &fakeRuleSetInstaller{
 		entries: []map[string]any{
-			{"tag": "loyalsoldier-direct", "type": "local", "format": "source", "path": "/var/lib/boxui/rule-sets/loyalsoldier-direct.json"},
-			{"tag": "loyalsoldier-proxy", "type": "local", "format": "source", "path": "/var/lib/boxui/rule-sets/loyalsoldier-proxy.json"},
-			{"tag": "loyalsoldier-reject", "type": "local", "format": "source", "path": "/var/lib/boxui/rule-sets/loyalsoldier-reject.json"},
+			{"tag": "loyalsoldier-direct", "type": "local", "format": "source", "path": "/var/lib/boxd/rule-sets/loyalsoldier-direct.json"},
+			{"tag": "loyalsoldier-proxy", "type": "local", "format": "source", "path": "/var/lib/boxd/rule-sets/loyalsoldier-proxy.json"},
+			{"tag": "loyalsoldier-reject", "type": "local", "format": "source", "path": "/var/lib/boxd/rule-sets/loyalsoldier-reject.json"},
 		},
 	}, nil, nil, nil)
 
@@ -271,7 +271,7 @@ func TestConfigHandlerInstallDefaultRuleSets(t *testing.T) {
 		case "custom":
 			customFound = true
 		case "loyalsoldier-direct":
-			if rs["path"] == "/var/lib/boxui/rule-sets/loyalsoldier-direct.json" && rs["type"] == "local" {
+			if rs["path"] == "/var/lib/boxd/rule-sets/loyalsoldier-direct.json" && rs["type"] == "local" {
 				directUpdated = true
 			}
 		}

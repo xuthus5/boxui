@@ -31,7 +31,7 @@ func TestRestoreBackupRestoresDatabaseAndConfig(t *testing.T) {
 	if err := RestoreBackup(archive, dataDir, configPath); err != nil {
 		t.Fatalf("RestoreBackup() error = %v", err)
 	}
-	restoredDB, err := bbolt.Open(filepath.Join(dataDir, "boxui.db"), 0600, nil)
+	restoredDB, err := bbolt.Open(filepath.Join(dataDir, "boxd.db"), 0600, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestRestoreBackupRestoresDatabaseAndConfig(t *testing.T) {
 func TestRestoreBackupRejectsChecksumMismatch(t *testing.T) {
 	entries := map[string][]byte{
 		backupDatabaseName: []byte("not-a-database"),
-		backupManifestName: []byte(`{"formatVersion":1,"checksums":{"boxui.db":"bad"}}`),
+		backupManifestName: []byte(`{"formatVersion":1,"checksums":{"boxd.db":"bad"}}`),
 	}
 	archive := filepath.Join(t.TempDir(), "bad.tar.gz")
 	if err := writeBackupArchive(archive, entries); err != nil {
@@ -81,7 +81,7 @@ func TestRestoreBackupRollsBackDatabaseWhenConfigRestoreFails(t *testing.T) {
 	if err := os.MkdirAll(dataDir, 0700); err != nil {
 		t.Fatal(err)
 	}
-	targetDB, err := bbolt.Open(filepath.Join(dataDir, "boxui.db"), 0600, nil)
+	targetDB, err := bbolt.Open(filepath.Join(dataDir, "boxd.db"), 0600, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestRestoreBackupRollsBackDatabaseWhenConfigRestoreFails(t *testing.T) {
 		t.Fatal("expected config restore failure")
 	}
 
-	targetDB, err = bbolt.Open(filepath.Join(dataDir, "boxui.db"), 0600, nil)
+	targetDB, err = bbolt.Open(filepath.Join(dataDir, "boxd.db"), 0600, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestRestoreBackupRejectsMalformedArchives(t *testing.T) {
 	}
 
 	for name, entries := range map[string]map[string][]byte{
-		"path traversal": {"../boxui.db": []byte("bad")},
+		"path traversal": {"../boxd.db": []byte("bad")},
 		"bad manifest":   {backupManifestName: []byte("not json")},
 		"bad version":    {backupManifestName: []byte(`{"formatVersion":99}`)},
 	} {

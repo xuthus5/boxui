@@ -328,4 +328,4 @@ Commit: `feat(urltest): add inherited defaults`
 
 - [x] **Step 5: Deploy the committed binary locally**
 
-Safely install `bin/boxui` as `/usr/local/bin/boxui` with owner `root:boxui` and mode `0750`, restart `boxui.service`, verify `active (running)`, verify the process executable, and inspect current-boot service logs for startup failures.
+Safely install `bin/boxd` as `/usr/local/bin/boxd` with owner `root:boxd` and mode `0750`, restart `boxd.service`, verify `active (running)`, verify the process executable, and inspect current-boot service logs for startup failures.

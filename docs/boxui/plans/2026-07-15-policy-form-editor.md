@@ -20,7 +20,7 @@
 - Route and DNS rules use up/down controls only; do not add drag-and-drop or dependencies.
 - Keep files at or below 300 lines, functions at or below 50 lines, nesting at or below 3, and cyclomatic complexity at or below 10.
 - Maintain statements, branches, functions, and lines coverage at or above 90%.
-- Finish with code review, Git commits using the repository convention, production build, binary replacement, and `boxui.service` verification.
+- Finish with code review, Git commits using the repository convention, production build, binary replacement, and `boxd.service` verification.
 
 ---
 
@@ -635,26 +635,26 @@ make build
 make check-embedded-ui
 ```
 
-Expected: `bin/boxui` contains the committed frontend and embedded-resource tests pass.
+Expected: `bin/boxd` contains the committed frontend and embedded-resource tests pass.
 
 - [ ] **Step 8: Install and restart locally**
 
 ```bash
-install -o root -g boxui -m 0750 bin/boxui /usr/local/bin/boxui.new
-mv -f /usr/local/bin/boxui.new /usr/local/bin/boxui
-systemctl restart boxui.service
+install -o root -g boxd -m 0750 bin/boxd /usr/local/bin/boxd.new
+mv -f /usr/local/bin/boxd.new /usr/local/bin/boxd
+systemctl restart boxd.service
 ```
 
 - [ ] **Step 9: Verify deployment evidence**
 
 ```bash
-cmp bin/boxui /usr/local/bin/boxui
-systemctl is-active boxui.service
-pid=$(systemctl show boxui.service -p MainPID --value)
+cmp bin/boxd /usr/local/bin/boxd
+systemctl is-active boxd.service
+pid=$(systemctl show boxd.service -p MainPID --value)
 readlink -f "/proc/$pid/exe"
 curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:9090/
-stat -c '%U:%G %a' /usr/local/bin/boxui
-journalctl -u boxui.service --since '3 minutes ago' --no-pager -n 40
+stat -c '%U:%G %a' /usr/local/bin/boxd
+journalctl -u boxd.service --since '3 minutes ago' --no-pager -n 40
 git status --short
 ```
 
@@ -662,9 +662,9 @@ Expected:
 
 ```text
 active
-/usr/local/bin/boxui
+/usr/local/bin/boxd
 200
-root:boxui 750
+root:boxd 750
 ```
 
-The journal contains no startup failure, panic, or fatal error, the deployed binary matches `bin/boxui`, and the Git worktree is clean.
+The journal contains no startup failure, panic, or fatal error, the deployed binary matches `bin/boxd`, and the Git worktree is clean.

@@ -13,13 +13,13 @@ type KernelHandler struct {
 	version string
 }
 
-// NewKernelHandler 用 boxui 编译期版本号构造 handler。
+// NewKernelHandler 用 boxd 编译期版本号构造 handler。
 func NewKernelHandler(version string) *KernelHandler {
 	return &KernelHandler{version: version}
 }
 
 // Version GET /api/runtime/version
-// 返回 boxui 应用版本与 sing-box 内核版本。
+// 返回 boxd 应用版本与 sing-box 内核版本。
 func (h *KernelHandler) Version(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{
 		"version":        h.version,

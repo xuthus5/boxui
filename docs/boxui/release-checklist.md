@@ -16,19 +16,19 @@
 - [ ] 面板在默认密码状态下会强制跳转到「应用设置」完成轮换
 - [ ] 轮换 JWT 签名密钥后，确认旧会话失效
 - [ ] 生产环境启用 HTTPS（见下方 TLS 部署）
-- [ ] `BOXUI_CORS_ALLOWED_ORIGINS` 仅配置可信来源
-- [ ] systemd 单元以非 root 服务用户运行，二进制权限 `root:boxui 0750`
-- [ ] 数据目录 `/var/lib/boxui` 权限收敛（目录 0700，关键文件 0600）
+- [ ] `BOXD_CORS_ALLOWED_ORIGINS` 仅配置可信来源
+- [ ] systemd 单元以非 root 服务用户运行，二进制权限 `root:boxd 0750`
+- [ ] 数据目录 `/var/lib/boxd` 权限收敛（目录 0700，关键文件 0600）
 
 ## 3. TLS 推荐部署
 
 boxd 支持内置 TLS：
 
 ```bash
-BOXUI_TLS_CERT=/etc/boxui/tls/fullchain.pem \
-BOXUI_TLS_KEY=/etc/boxui/tls/privkey.pem \
-BOXUI_LISTEN=[::]:9091 \
-/usr/local/bin/boxui
+BOXD_TLS_CERT=/etc/boxd/tls/fullchain.pem \
+BOXD_TLS_KEY=/etc/boxd/tls/privkey.pem \
+BOXD_LISTEN=[::]:9091 \
+/usr/local/bin/boxd
 ```
 
 或使用反向代理（推荐在已有证书体系时）：
@@ -45,11 +45,11 @@ BOXUI_LISTEN=[::]:9091 \
 
 ## 4. 默认密码与账号
 
-密码优先级：数据库哈希 → 首次 `BOXUI_PASSWORD` → `admin123`。
+密码优先级：数据库哈希 → 首次 `BOXD_PASSWORD` → `admin123`。
 
 发布动作：
 
-1. 安装时通过 `BOXUI_PASSWORD` 注入强初始密码，或
+1. 安装时通过 `BOXD_PASSWORD` 注入强初始密码，或
 2. 首次登录后立即在「应用设置」轮换
 3. 确认设置页不再显示默认密码告警
 4. 轮换后使用新密码重新登录
@@ -59,15 +59,15 @@ BOXUI_LISTEN=[::]:9091 \
 创建备份：
 
 ```bash
-/usr/local/bin/boxui --backup /var/backups/boxui/boxui-$(date +%F).tar.gz
+/usr/local/bin/boxd --backup /var/backups/boxd/boxd-$(date +%F).tar.gz
 ```
 
 恢复：
 
 ```bash
-systemctl stop boxui.service
-/usr/local/bin/boxui --restore /var/backups/boxui/boxui-YYYY-MM-DD.tar.gz --data-dir /var/lib/boxui --config /etc/sing-box/config.json
-systemctl start boxui.service
+systemctl stop boxd.service
+/usr/local/bin/boxd --restore /var/backups/boxd/boxd-YYYY-MM-DD.tar.gz --data-dir /var/lib/boxd --config /etc/sing-box/config.json
+systemctl start boxd.service
 ```
 
 验收：
@@ -81,11 +81,11 @@ systemctl start boxui.service
 
 升级：
 
-1. 备份：`boxui --backup ...`
+1. 备份：`boxd --backup ...`
 2. 构建或获取新版本二进制
-3. `install -o root -g boxui -m 0750 bin/boxui /usr/local/bin/boxui`
-4. `systemctl restart boxui.service`
-5. 检查：`systemctl is-active boxui.service`、`journalctl -u boxui.service -n 50`、登录面板
+3. `install -o root -g boxd -m 0750 bin/boxd /usr/local/bin/boxd`
+4. `systemctl restart boxd.service`
+5. 检查：`systemctl is-active boxd.service`、`journalctl -u boxd.service -n 50`、登录面板
 
 回滚：
 
@@ -99,7 +99,7 @@ systemctl start boxui.service
 短时 smoke（每次发布）：
 
 ```bash
-export BOXUI_PASSWORD='***'
+export BOXD_PASSWORD='***'
 ./scripts/e2e-live.sh
 ./scripts/soak-runtime.sh --duration 300 --interval 10
 ```
@@ -113,7 +113,7 @@ GA 前长稳（推荐）：
   --max-alloc-growth-mb 128 \
   --max-sys-growth-mb 192 \
   --max-goroutine-growth 80 \
-  --output /var/log/boxui/soak-24h.csv
+  --output /var/log/boxd/soak-24h.csv
 ```
 
 通过标准：

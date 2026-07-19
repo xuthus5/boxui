@@ -17,7 +17,7 @@ afterEach(() => {
 function setup(config: SingBoxConfig = {
   log: { level: "info" },
   experimental: {
-    cache_file: { enabled: true, path: "/var/lib/boxui/cache.db" },
+    cache_file: { enabled: true, path: "/var/lib/boxd/cache.db" },
   },
   outbounds: [{ type: "direct", tag: "direct" }, { type: "selector", tag: "proxy" }],
   inbounds: [{ type: "mixed", tag: "mixed-in" }],

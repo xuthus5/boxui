@@ -136,7 +136,16 @@ func openDatabase(dataDir string) (*bbolt.DB, error) {
 		return nil, fmt.Errorf("failed to create data dir: %w", err)
 	}
 
-	dbPath := filepath.Join(dataDir, "boxui.db")
+	dbPath := filepath.Join(dataDir, "boxd.db")
+	// 兼容旧数据目录中的 boxui.db：若新库不存在且旧库存在，则迁移文件名。
+	legacyPath := filepath.Join(dataDir, "boxui.db")
+	if _, err := os.Stat(dbPath); err != nil && os.IsNotExist(err) {
+		if _, legacyErr := os.Stat(legacyPath); legacyErr == nil {
+			if renameErr := os.Rename(legacyPath, dbPath); renameErr != nil {
+				return nil, fmt.Errorf("failed to migrate legacy database: %w", renameErr)
+			}
+		}
+	}
 	db, err := bbolt.Open(dbPath, 0600, &bbolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
@@ -267,7 +276,7 @@ func signalChannel() chan os.Signal {
 func serveUntilSignal(server server, cfg *config.Config, quit <-chan os.Signal) error {
 	errCh := make(chan error, 1)
 	go func() {
-		slog.Info("boxui listening", "addr", cfg.Listen, "tls", cfg.TLSCert != "")
+		slog.Info("boxd listening", "addr", cfg.Listen, "tls", cfg.TLSCert != "")
 		var err error
 		if cfg.TLSCert != "" && cfg.TLSKey != "" {
 			err = server.ListenAndServeTLS(cfg.TLSCert, cfg.TLSKey)

@@ -50,7 +50,7 @@ export const en = {
     settings: {
       title: "Application Settings", appearanceMenu: "Appearance", appearanceTitle: "Appearance and Language", appearanceDescription: "Preferences are stored only in this browser.",
       theme: "Theme", light: "Light", dark: "Dark", system: "System", language: "Language", minimumLogLevel: "Default minimum log level", minimumLogLevelDescription: "Dashboard recent logs and the logs page default to this level and above.",
-      accountTitle: "Login and Security", accountDescription: "The login username is managed by BOXUI_USERNAME or startup flags and cannot be rotated here.",
+      accountTitle: "Login and Security", accountDescription: "The login username is managed by BOXD_USERNAME or startup flags and cannot be rotated here.",
       defaultPasswordTitle: "Default password is still active", defaultPasswordDescription: "Rotate the administrator password immediately.", defaultPasswordForced: "Rotate the default admin password before using other panel features.",
       currentPassword: "Current password", newPassword: "New password", passwordHint: "At least 8 characters.", rotatePassword: "Rotate password",
       jwtSecret: "JWT signing secret", rotateJWT: "Rotate JWT secret", rotateJWTTitle: "Rotate JWT secret?",

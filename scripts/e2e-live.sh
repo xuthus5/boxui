@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# Live API smoke E2E against a running BoxUI instance.
+# Live API smoke E2E against a running boxd instance.
 # Flow: login → read config → mutate experimental marker → save → verify status + app logs.
 set -euo pipefail
 
-base_url="${BOXUI_BASE_URL:-http://127.0.0.1:9091}"
-username="${BOXUI_USERNAME:-admin}"
-password="${BOXUI_PASSWORD:-}"
+base_url="${BOXD_BASE_URL:-http://127.0.0.1:9091}"
+username="${BOXD_USERNAME:-admin}"
+password="${BOXD_PASSWORD:-}"
 
 usage() {
   cat <<'USAGE'
 Usage: e2e-live.sh [--base-url URL] [--username NAME] [--password PASS]
 
 Environment:
-  BOXUI_BASE_URL   default http://127.0.0.1:9091
-  BOXUI_USERNAME   default admin
-  BOXUI_PASSWORD   required unless --password is set
+  BOXD_BASE_URL   default http://127.0.0.1:9091
+  BOXD_USERNAME   default admin
+  BOXD_PASSWORD   required unless --password is set
 
 Steps:
   1. health check
@@ -38,7 +38,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$password" ]]; then
-  echo "password is required via --password or BOXUI_PASSWORD" >&2
+  echo "password is required via --password or BOXD_PASSWORD" >&2
   exit 2
 fi
 

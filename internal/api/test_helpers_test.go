@@ -13,8 +13,8 @@ import (
 	chi "github.com/go-chi/chi/v5"
 	"go.etcd.io/bbolt"
 
-	"github.com/xuthus5/boxui/internal/core"
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/core"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 func newTestDB(t *testing.T) *bbolt.DB {

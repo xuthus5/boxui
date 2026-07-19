@@ -11,8 +11,8 @@ import (
 
 	chi "github.com/go-chi/chi/v5"
 
-	"github.com/xuthus5/boxui/internal/core"
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/core"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 // statsInstance 抽取 StatsHandler 所需的运行时能力，便于测试注入。

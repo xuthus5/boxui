@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 func TestSyncOutboundsToConfigPreservesNonProxyOutbounds(t *testing.T) {

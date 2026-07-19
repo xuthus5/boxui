@@ -7,7 +7,7 @@ import (
 
 	"go.etcd.io/bbolt"
 
-	"github.com/xuthus5/boxui/internal/core"
+	"github.com/xuthus5/boxd/internal/core"
 )
 
 func TestSubscriptionBackedListHandlersReturnInternalErrorForInvalidData(t *testing.T) {

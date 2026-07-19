@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 func parseSubscriptionContent(body []byte) []model.Outbound {

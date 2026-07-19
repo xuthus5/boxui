@@ -299,8 +299,8 @@ Mention global URLTest defaults and per-subscription inheritance under the exist
 Run:
 
 ```bash
-goimports-reviser -rm-unused -set-alias -project-name github.com/xuthus5/boxui -recursive ./internal
-goimports-reviser -rm-unused -set-alias -project-name github.com/xuthus5/boxui -recursive ./cmd
+goimports-reviser -rm-unused -set-alias -project-name github.com/xuthus5/boxd -recursive ./internal
+goimports-reviser -rm-unused -set-alias -project-name github.com/xuthus5/boxd -recursive ./cmd
 go test ./internal/core ./internal/api
 cd ui && npm run typecheck && npm run lint && npm run coverage
 ```

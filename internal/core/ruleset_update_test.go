@@ -12,7 +12,7 @@ import (
 
 	"go.etcd.io/bbolt"
 
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 func TestRuleSetAutoUpdateSettings(t *testing.T) {

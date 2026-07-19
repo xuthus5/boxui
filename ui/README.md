@@ -1,4 +1,4 @@
-# BoxUI Frontend
+# boxd Frontend
 
 React 19、TypeScript、Vite 与 shadcn/ui 管理面板。
 

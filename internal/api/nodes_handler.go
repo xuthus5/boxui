@@ -6,8 +6,8 @@ import (
 
 	chi "github.com/go-chi/chi/v5"
 
-	"github.com/xuthus5/boxui/internal/core"
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/core"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 type NodesHandler struct {

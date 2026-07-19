@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/xuthus5/boxui/internal/core"
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/core"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 func newSettingsHandler(t *testing.T) *SettingsHandler {

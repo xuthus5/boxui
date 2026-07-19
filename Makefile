@@ -32,7 +32,7 @@ build:
 	@find cmd/boxui/ui -type f -exec chmod 0600 {} +
 	@echo "Building binary..."
 	@install -d -m 0700 bin
-	@go build -tags "$(BUILD_TAGS)" -ldflags "-X github.com/xuthus5/boxui/internal/core.Version=$(VERSION) -X github.com/sagernet/sing-box/constant.Version=$(KERNEL_VERSION)" -o bin/boxui ./cmd/boxui/
+	@go build -tags "$(BUILD_TAGS)" -ldflags "-X github.com/xuthus5/boxd/internal/core.Version=$(VERSION) -X github.com/sagernet/sing-box/constant.Version=$(KERNEL_VERSION)" -o bin/boxui ./cmd/boxui/
 	@chmod 0700 bin/boxui
 	@echo "Cleaning up embed copy..."
 	@rm -rf cmd/boxui/ui

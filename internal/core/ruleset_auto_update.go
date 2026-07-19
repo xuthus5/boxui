@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 // RuleSetAutoUpdater 仅更新内置 local 规则集，默认关闭。

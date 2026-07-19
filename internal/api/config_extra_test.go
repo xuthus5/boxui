@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/xuthus5/boxui/internal/core"
+	"github.com/xuthus5/boxd/internal/core"
 )
 
 func newConfigHandlerWithFile(t *testing.T) (*ConfigHandler, string) {

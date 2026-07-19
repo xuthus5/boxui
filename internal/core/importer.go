@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 func nodeName(u *url.URL, fallback string) string {

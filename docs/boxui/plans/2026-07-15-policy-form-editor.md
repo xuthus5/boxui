@@ -599,8 +599,8 @@ Expected: TypeScript, ESLint, all Vitest tests, all four coverage metrics at `>=
 - [ ] **Step 4: Run Go formatting and completion gates**
 
 ```bash
-goimports-reviser -rm-unused -set-alias -project-name github.com/xuthus5/boxui -recursive ./internal
-goimports-reviser -rm-unused -set-alias -project-name github.com/xuthus5/boxui -recursive ./cmd
+goimports-reviser -rm-unused -set-alias -project-name github.com/xuthus5/boxd -recursive ./internal
+goimports-reviser -rm-unused -set-alias -project-name github.com/xuthus5/boxd -recursive ./cmd
 git diff --name-only -- '*.go'
 make check-go
 ```

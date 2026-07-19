@@ -14,8 +14,8 @@ import (
 
 	sbLog "github.com/sagernet/sing-box/log"
 
-	"github.com/xuthus5/boxui/internal/core"
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/core"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 func TestServiceHandlerStatusAndErrors(t *testing.T) {

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/xuthus5/boxui/internal/core"
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/core"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 var defaultTestURL = "https://cp.cloudflare.com/"

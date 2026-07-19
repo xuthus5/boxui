@@ -34,7 +34,7 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/xuthus5/boxui
+        - github.com/xuthus5/boxd
 
 issues:
   max-issues-per-linter: 0

@@ -1,13 +1,13 @@
 # Third-Party Notices
 
-BoxUI 自有代码按仓库根目录的 MIT License 授权。正式发布的 BoxUI 二进制静态链接了 GPL-3.0 组件，因此二进制分发必须同时满足 GPL-3.0 的适用义务。本文件不是法律意见；商业分发方应结合实际修改和交付方式进行合规审查。
+boxd 自有代码按仓库根目录的 MIT License 授权。正式发布的 boxd 二进制静态链接了 GPL-3.0 组件，因此二进制分发必须同时满足 GPL-3.0 的适用义务。本文件不是法律意见；商业分发方应结合实际修改和交付方式进行合规审查。
 
 ## GPL-3.0 组件
 
 - `github.com/sagernet/sing-box` — GPL-3.0
 - `github.com/sagernet/sing` — GPL-3.0
 
-发布归档必须包含来自 sing-box 模块的完整 GPL-3.0 文本 `LICENSE-GPL-3.0`。发布对应源码可从本 BoxUI Git tag、`go.mod`、`go.sum` 以及其中固定的上游版本重建。分发经过修改的二进制时，分发方还需提供相应修改后的完整源码和构建信息。
+发布归档必须包含来自 sing-box 模块的完整 GPL-3.0 文本 `LICENSE-GPL-3.0`。发布对应源码可从本 boxd Git tag、`go.mod`、`go.sum` 以及其中固定的上游版本重建。分发经过修改的二进制时，分发方还需提供相应修改后的完整源码和构建信息。
 
 ## 主要宽松许可证依赖
 
@@ -21,4 +21,4 @@ BoxUI 自有代码按仓库根目录的 MIT License 授权。正式发布的 Box
 
 ## 外部规则与数据
 
-BoxUI 可以下载或引用 Loyalsoldier、SagerNet 等第三方规则集。规则数据不属于 BoxUI 自有代码，授权条款由对应数据源决定。商业交付方应在预装、镜像缓存或再分发这些数据前单独确认其许可。
+boxd 可以下载或引用 Loyalsoldier、SagerNet 等第三方规则集。规则数据不属于 boxd 自有代码，授权条款由对应数据源决定。商业交付方应在预装、镜像缓存或再分发这些数据前单独确认其许可。

@@ -4,7 +4,7 @@ import (
 	"crypto/subtle"
 	"time"
 
-	"github.com/xuthus5/boxui/internal/core"
+	"github.com/xuthus5/boxd/internal/core"
 )
 
 // NewAuthHandler 构造认证处理器，密钥由 provider 动态提供以支持运行时轮换。

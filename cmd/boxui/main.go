@@ -14,9 +14,9 @@ import (
 
 	"go.etcd.io/bbolt"
 
-	"github.com/xuthus5/boxui/internal/api"
-	"github.com/xuthus5/boxui/internal/config"
-	"github.com/xuthus5/boxui/internal/core"
+	"github.com/xuthus5/boxd/internal/api"
+	"github.com/xuthus5/boxd/internal/config"
+	"github.com/xuthus5/boxd/internal/core"
 )
 
 func main() {

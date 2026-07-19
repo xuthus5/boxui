@@ -3,7 +3,7 @@ package core
 import (
 	"testing"
 
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 func TestSubscriptionURLTestOverrides(t *testing.T) {

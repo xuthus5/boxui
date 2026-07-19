@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 COPY --from=ui-builder /app/ui/dist ./cmd/boxui/ui/dist
 RUN go build -tags "embed_ui with_gvisor with_quic with_dhcp with_wireguard with_utls with_acme with_clash_api" \
-    -ldflags "-X github.com/xuthus5/boxui/internal/core.Version=$(git describe --tags --always 2>/dev/null || echo dev) -X github.com/sagernet/sing-box/constant.Version=v1.13.14" \
+    -ldflags "-X github.com/xuthus5/boxd/internal/core.Version=$(git describe --tags --always 2>/dev/null || echo dev) -X github.com/sagernet/sing-box/constant.Version=v1.13.14" \
     -o /bin/boxui ./cmd/boxui/
 
 # 运行

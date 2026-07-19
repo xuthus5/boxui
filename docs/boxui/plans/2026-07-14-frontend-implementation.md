@@ -483,7 +483,7 @@ Run from the repository root:
 ```bash
 go test ./...
 golangci-lint run ./...
-goimports-reviser -rm-unused -set-alias -local github.com/xuthus5/boxui -project-path ./internal ./cmd
+goimports-reviser -rm-unused -set-alias -local github.com/xuthus5/boxd -project-path ./internal ./cmd
 make check-embedded-ui
 ```
 

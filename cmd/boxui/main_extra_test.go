@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/xuthus5/boxui/internal/config"
+	"github.com/xuthus5/boxd/internal/config"
 )
 
 func TestValidateConfigTLS(t *testing.T) {

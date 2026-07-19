@@ -70,7 +70,7 @@ function AppSidebar() {
   }
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader><SidebarMenu><SidebarMenuItem><SidebarMenuButton size="lg" render={<NavLink to="/dashboard" />} tooltip="BoxUI"><BoxIcon /><span className="flex min-w-0 flex-col items-start"><span className="truncate font-semibold">BoxUI</span><span className="truncate text-xs text-sidebar-foreground/60">sing-box control plane</span></span></SidebarMenuButton></SidebarMenuItem></SidebarMenu></SidebarHeader>
+      <SidebarHeader><SidebarMenu><SidebarMenuItem><SidebarMenuButton size="lg" render={<NavLink to="/dashboard" />} tooltip="boxd"><BoxIcon /><span className="flex min-w-0 flex-col items-start"><span className="truncate font-semibold">boxd</span><span className="truncate text-xs text-sidebar-foreground/60">sing-box control plane</span></span></SidebarMenuButton></SidebarMenuItem></SidebarMenu></SidebarHeader>
       <SidebarContent>
         <SidebarGroup><SidebarGroupContent><NavItems items={primaryItems} /></SidebarGroupContent></SidebarGroup>
         {navigationGroups.map((group) => (
@@ -107,8 +107,8 @@ export function AppShell() {
           <SidebarTrigger><PanelLeftIcon /></SidebarTrigger>
           <Separator orientation="vertical" className="h-5" />
           <div className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate text-xs text-muted-foreground">{context.group ? t(context.group) : "BoxUI"}</span>
-            <span className="truncate text-sm font-medium">{context.item ? t(context.item) : "BoxUI"}</span>
+            <span className="truncate text-xs text-muted-foreground">{context.group ? t(context.group) : "boxd"}</span>
+            <span className="truncate text-sm font-medium">{context.item ? t(context.item) : "boxd"}</span>
           </div>
           <AppearanceMenu />
         </header>

@@ -1,4 +1,4 @@
-# BoxUI 自托管 GA 发布清单
+# boxd 自托管 GA 发布清单
 
 适用对象：单节点自托管部署（个人 / 小团队）。不覆盖多租户 SaaS。
 
@@ -22,7 +22,7 @@
 
 ## 3. TLS 推荐部署
 
-BoxUI 支持内置 TLS：
+boxd 支持内置 TLS：
 
 ```bash
 BOXUI_TLS_CERT=/etc/boxui/tls/fullchain.pem \

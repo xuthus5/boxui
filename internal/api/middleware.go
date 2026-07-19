@@ -10,7 +10,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 func writeJSONEnvelope(w http.ResponseWriter, statusCode int, status string, data any, apiErr *model.APIError, meta any) {

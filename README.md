@@ -1,6 +1,6 @@
-# boxui
+# boxd
 
-sing-box Web 管理面板，提供节点管理、订阅、配置编辑、流量监控等功能。
+sing-box Web 管理面板（boxd），提供节点管理、订阅、配置编辑、流量监控等功能。
 
 ## 技术栈
 
@@ -121,8 +121,8 @@ npm run e2e
 
 # Lint
 golangci-lint run ./...
-goimports-reviser -rm-unused -set-alias -project-name github.com/xuthus5/boxui -recursive ./internal
-goimports-reviser -rm-unused -set-alias -project-name github.com/xuthus5/boxui -recursive ./cmd
+goimports-reviser -rm-unused -set-alias -project-name github.com/xuthus5/boxd -recursive ./internal
+goimports-reviser -rm-unused -set-alias -project-name github.com/xuthus5/boxd -recursive ./cmd
 ```
 
 完整质量门禁：

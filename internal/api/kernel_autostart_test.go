@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/xuthus5/boxui/internal/core"
+	"github.com/xuthus5/boxd/internal/core"
 )
 
 type enabledResp struct {

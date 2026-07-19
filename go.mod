@@ -1,4 +1,4 @@
-module github.com/xuthus5/boxui
+module github.com/xuthus5/boxd
 
 go 1.26.4
 

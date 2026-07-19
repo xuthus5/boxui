@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 type ServiceHandler struct {

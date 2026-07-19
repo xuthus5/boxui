@@ -11,7 +11,7 @@ import (
 
 	"go.etcd.io/bbolt"
 
-	"github.com/xuthus5/boxui/internal/model"
+	"github.com/xuthus5/boxd/internal/model"
 )
 
 var subBucket = []byte("subscriptions")

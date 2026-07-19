@@ -7,7 +7,7 @@ COPY ui/ ./
 RUN npm run build
 
 # Go build
-FROM golang:1.26-alpine AS go-builder
+FROM golang:1.26.5-alpine AS go-builder
 WORKDIR /app
 ARG VERSION=dev
 ARG KERNEL_VERSION=1.13.14

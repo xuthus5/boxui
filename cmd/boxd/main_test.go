@@ -409,3 +409,26 @@ func (s *fakeServer) Shutdown(ctx context.Context) error {
 	s.shutdownCalled = true
 	return s.shutdownErr
 }
+
+func TestValidateRegularFileRejectsDirectory(t *testing.T) {
+	if err := validateRegularFile(t.TempDir(), "tls certificate"); err == nil {
+		t.Fatal("expected directory rejection")
+	}
+}
+
+func TestValidateConfigTLSPair(t *testing.T) {
+	cert := filepath.Join(t.TempDir(), "cert.pem")
+	key := filepath.Join(t.TempDir(), "key.pem")
+	if err := os.WriteFile(cert, []byte("c"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(key, []byte("k"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateConfig(&config.Config{TLSCert: cert, TLSKey: key}); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateConfig(&config.Config{TLSCert: cert}); err == nil {
+		t.Fatal("expected missing key error")
+	}
+}

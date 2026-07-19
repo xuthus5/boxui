@@ -119,3 +119,14 @@ func readBackupEntries(t *testing.T, path string) map[string][]byte {
 	}
 	return entries
 }
+
+func TestWriteBackupEntryAndArchiveEdges(t *testing.T) {
+	// writeBackupArchive with only database
+	out := filepath.Join(t.TempDir(), "nested", "a.tar.gz")
+	if err := writeBackupArchive(out, map[string][]byte{backupDatabaseName: []byte("db")}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(out); err != nil {
+		t.Fatal(err)
+	}
+}

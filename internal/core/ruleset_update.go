@@ -164,15 +164,6 @@ func (u *RuleSetUpdater) Update(ctx context.Context, req RuleSetUpdateRequest) (
 	return resp, nil
 }
 
-func hasRemoteSuccess(results []model.RuleSetUpdateResult) bool {
-	for _, item := range results {
-		if item.OK && item.Type == "remote" && !item.NotModified {
-			return true
-		}
-	}
-	return false
-}
-
 func (u *RuleSetUpdater) updateOne(ctx context.Context, entry map[string]any) model.RuleSetUpdateResult {
 	tag, _ := entry["tag"].(string)
 	typ, _ := entry["type"].(string)

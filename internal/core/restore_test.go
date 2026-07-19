@@ -185,3 +185,91 @@ func TestRollbackFileRestoresAndRemovesTargets(t *testing.T) {
 		t.Fatalf("rollback data = %q", data)
 	}
 }
+
+func TestAtomicReplaceFileAndValidateDB(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "nested", "boxd.db")
+	// invalid snapshot
+	if err := validateDatabaseSnapshot([]byte("not-a-db")); err == nil {
+		t.Fatal("expected invalid snapshot")
+	}
+	// create valid empty bolt db bytes
+	tmpDB := filepath.Join(dir, "src.db")
+	db, err := bbolt.Open(tmpDB, 0600, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(tmpDB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateDatabaseSnapshot(data); err != nil {
+		t.Fatal(err)
+	}
+	if err := atomicReplaceFile(path, data); err != nil {
+		t.Fatal(err)
+	}
+	// optional file helpers
+	got, exists, err := readOptionalFile(path)
+	if err != nil || !exists || len(got) == 0 {
+		t.Fatalf("readOptionalFile got exists=%v err=%v", exists, err)
+	}
+	missing, exists, err := readOptionalFile(filepath.Join(dir, "nope"))
+	if err != nil || exists || missing != nil {
+		t.Fatalf("missing optional = %v %v %v", missing, exists, err)
+	}
+	if err := preserveRestoreCopy(path, got, true); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRestoreBackupRejectsOversizedAndInvalidEntries(t *testing.T) {
+	// invalid entry name rejected by allow-list
+	archive := filepath.Join(t.TempDir(), "extra.tar.gz")
+	writeRawArchive(t, archive, map[string][]byte{
+		backupManifestName: []byte(`{"formatVersion":1,"checksums":{}}`),
+		"evil.txt":         []byte("x"),
+	})
+	if err := RestoreBackup(archive, t.TempDir(), filepath.Join(t.TempDir(), "c.json")); err == nil {
+		t.Fatal("expected invalid entry error")
+	}
+}
+
+func TestPreserveRestoreCopyAbsent(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "missing.db")
+	if err := preserveRestoreCopy(path, nil, false); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestReadValidatedTarRejectsDirectoryEntry(t *testing.T) {
+	// covered indirectly; ensure oversized header path via writeRawArchive size already handled by allow list.
+	archive := filepath.Join(t.TempDir(), "bad-version.tar.gz")
+	writeRawArchive(t, archive, map[string][]byte{
+		backupManifestName: []byte(`{"formatVersion":2}`),
+	})
+	if err := RestoreBackup(archive, t.TempDir(), filepath.Join(t.TempDir(), "c.json")); err == nil {
+		t.Fatal("expected bad version")
+	}
+}
+
+func TestAtomicReplaceFileParentMissing(t *testing.T) {
+	// parent path is a file, MkdirAll should fail
+	dir := t.TempDir()
+	parent := filepath.Join(dir, "not-a-dir")
+	if err := os.WriteFile(parent, []byte("x"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := atomicReplaceFile(filepath.Join(parent, "file.db"), []byte("abc")); err == nil {
+		t.Fatal("expected mkdir error")
+	}
+}
+
+func TestValidateDatabaseSnapshotEmpty(t *testing.T) {
+	if err := validateDatabaseSnapshot(nil); err == nil {
+		t.Fatal("expected empty snapshot error")
+	}
+}

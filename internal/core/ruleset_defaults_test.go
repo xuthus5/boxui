@@ -106,3 +106,14 @@ func TestRemoteRuleSetDefaultsContent(t *testing.T) {
 		}
 	}
 }
+
+func TestUniqueStringsAndFetchErrors(t *testing.T) {
+	got := uniqueStrings([]string{"a", "a", "", "b", "b"})
+	if len(got) != 2 || got[0] != "a" || got[1] != "b" {
+		t.Fatalf("got = %#v", got)
+	}
+	installer := &LoyalsoldierRuleSetInstaller{client: http.DefaultClient, ruleSetDir: t.TempDir()}
+	if _, err := installer.fetchAndConvert(context.Background(), RuleSetSource{Tag: "x", URL: "://bad"}); err == nil {
+		t.Fatal("expected bad url error")
+	}
+}

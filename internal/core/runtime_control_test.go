@@ -48,3 +48,16 @@ func TestRuntimeControlSentinels(t *testing.T) {
 		t.Fatal("ErrFeatureNotEnabled should not match ErrNotRunning")
 	}
 }
+
+func TestOutboundDelayNotRunning(t *testing.T) {
+	s := &SBInstance{}
+	if _, err := s.OutboundDelay(context.Background(), "x", "", time.Second); err == nil {
+		t.Fatal("expected not running")
+	}
+	if err := s.FlushDNS(); err == nil {
+		t.Fatal("expected not running flush dns")
+	}
+	if err := s.FlushFakeIP(); err == nil {
+		t.Fatal("expected not running flush fakeip")
+	}
+}

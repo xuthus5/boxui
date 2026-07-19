@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react"
+import { screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import App from "@/App"
@@ -10,10 +10,18 @@ afterEach(() => {
   sessionStore.clear()
 })
 
+function requestPath(input: string | URL | Request) {
+  if (typeof input === "string") {
+    try { return new URL(input, "http://localhost").pathname } catch { return input.split("?")[0] }
+  }
+  if (input instanceof URL) return input.pathname
+  try { return new URL(input.url, "http://localhost").pathname } catch { return String(input.url).split("?")[0] }
+}
+
 function stub(defaultPassword: boolean) {
   sessionStore.set({ token: "token", expiresAt: "2099-01-01T00:00:00Z" })
   vi.stubGlobal("fetch", vi.fn((input: string | URL | Request) => {
-    const path = String(typeof input === "string" ? input : input instanceof URL ? input.pathname : input.url).split("?")[0]
+    const path = requestPath(input)
     if (path === "/api/settings/password") {
       return Promise.resolve(new Response(JSON.stringify({ defaultPassword })))
     }
@@ -58,10 +66,8 @@ describe("default password gate", () => {
   it("redirects non-settings pages to settings when default password is active", async () => {
     stub(true)
     renderApp(<App />, "/dashboard")
-    await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "应用设置" })).toBeInTheDocument()
-    })
-    expect(screen.getByText("请先轮换默认管理员密码后，才能使用其他面板功能。")).toBeInTheDocument()
+    expect(await screen.findByText("请先轮换默认管理员密码后，才能使用其他面板功能。")).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "应用设置" })).toBeInTheDocument()
   })
 
   it("allows dashboard when default password is not active", async () => {

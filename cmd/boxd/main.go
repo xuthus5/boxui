@@ -137,15 +137,6 @@ func openDatabase(dataDir string) (*bbolt.DB, error) {
 	}
 
 	dbPath := filepath.Join(dataDir, "boxd.db")
-	// 兼容旧数据目录中的 boxui.db：若新库不存在且旧库存在，则迁移文件名。
-	legacyPath := filepath.Join(dataDir, "boxui.db")
-	if _, err := os.Stat(dbPath); err != nil && os.IsNotExist(err) {
-		if _, legacyErr := os.Stat(legacyPath); legacyErr == nil {
-			if renameErr := os.Rename(legacyPath, dbPath); renameErr != nil {
-				return nil, fmt.Errorf("failed to migrate legacy database: %w", renameErr)
-			}
-		}
-	}
 	db, err := bbolt.Open(dbPath, 0600, &bbolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)

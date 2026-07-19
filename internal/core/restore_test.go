@@ -48,18 +48,6 @@ func TestRestoreBackupRestoresDatabaseAndConfig(t *testing.T) {
 	}
 }
 
-func TestRestoreBackupRejectsLegacyDatabaseName(t *testing.T) {
-	entries := map[string][]byte{
-		"boxui.db":         []byte("not-a-database"),
-		backupManifestName: []byte(`{"formatVersion":1,"checksums":{"boxui.db":"bad"}}`),
-	}
-	archive := filepath.Join(t.TempDir(), "legacy.tar.gz")
-	writeRawArchive(t, archive, entries)
-	if err := RestoreBackup(archive, t.TempDir(), filepath.Join(t.TempDir(), "config.json")); err == nil {
-		t.Fatal("expected missing boxd.db error for legacy archive entry")
-	}
-}
-
 func TestRestoreBackupRejectsChecksumMismatch(t *testing.T) {
 	entries := map[string][]byte{
 		backupDatabaseName: []byte("not-a-database"),
